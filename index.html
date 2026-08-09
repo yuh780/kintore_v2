@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>筋トレログ｜YU Edition v1.0.0</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="筋トレ">
+<meta name="theme-color" content="#0B0D10">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0B0D10; --panel:#15181C; --panel-2:#1D2126; --line:#2A2F35;
+    --text:#ECEDEE; --muted:#9AA0A6; --accent:#FFB020; --danger:#FF5A4E;
+    --done:#35D48A; --mono:'SF Mono','Menlo','Consolas',monospace;
+    --bench:#FF6B6B; --tbar:#4FA8FF; --squat:#35D48A;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Segoe UI',sans-serif;}
+  #app{max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
+
+  button:focus-visible, input:focus-visible, select:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
+  }
+
+  header.topbar{
+    padding:20px 16px 16px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--bg); z-index:5;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .page-title{font-size:20px; font-weight:800; letter-spacing:-0.02em;}
+  .page-title.sub{font-size:18px;}
+  .page-sub{font-size:13px; color:var(--muted); margin-top:4px;}
+  .icon-btn{
+    background:none; border:none; color:var(--muted); font-size:20px;
+    min-width:44px; min-height:44px; padding:12px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .icon-btn-labeled{
+    font-size:12px; font-weight:700; gap:2px; flex-direction:column; line-height:1.1;
+  }
+  .icon-btn-labeled .icon-btn-icon{font-size:16px; line-height:1;}
+
+  main{flex:1; padding:16px 16px 200px;}
+  main.home-main{padding-bottom:48px;}
+  main.settings-main{padding-bottom:48px;}
+
+  .btn-add-ex{
+    width:100%; padding:14px; margin-bottom:8px;
+    border-radius:14px; border:1px dashed var(--line);
+    background:none; color:var(--accent);
+    font-size:15px; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .btn-copy-ex{
+    width:100%; padding:14px; margin-bottom:8px;
+    border-radius:14px; border:1px solid var(--line);
+    background:var(--panel); color:var(--text);
+    font-size:15px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+
+  .copy-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:16px; margin-bottom:10px; max-height:240px; overflow-y:auto;
+  }
+  .copy-panel-title{font-size:12px; color:var(--muted); font-weight:600; margin-bottom:12px;}
+  .copy-day-item{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    width:100%; text-align:left; padding:12px 14px; margin-bottom:8px;
+    border-radius:12px; border:1px solid var(--line); background:var(--panel-2);
+    color:var(--text); font-size:14px; cursor:pointer; font-family:inherit;
+  }
+  .copy-day-item:last-child{margin-bottom:0;}
+  .copy-day-item:active{border-color:var(--accent);}
+  .copy-day-date{font-family:var(--mono); font-size:12px; color:var(--muted);}
+  .copy-day-meta{font-size:13px; font-weight:700; margin-top:4px;}
+  .copy-day-count{font-size:12px; color:var(--muted); flex-shrink:0;}
+
+  .add-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:16px; margin-bottom:10px;
+  }
+  .add-panel label{display:block; font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600;}
+  .add-panel select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:14px; color:var(--text); font-size:16px; margin-bottom:16px; font-family:inherit;
+  }
+  .add-panel select:focus{outline:none; border-color:var(--accent);}
+  .btn{
+    display:block; width:100%; text-align:center; padding:18px 16px; border-radius:14px; border:none;
+    font-size:16px; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .btn-primary{background:var(--accent); color:#1a1200;}
+  .btn-secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--line);}
+  .btn-ghost{background:none; color:var(--muted); border:1px solid var(--line); margin-top:10px;}
+
+  .workout-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    margin-bottom:10px; position:relative; overflow:hidden;
+  }
+  .workout-card.is-done{background:rgba(53,212,138,.03);}
+  .workout-card-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 14px;
+  }
+  .workout-card.is-expanded .workout-card-head{border-bottom:1px solid var(--line);}
+  .workout-card-toggle{
+    flex:1; min-width:0; display:flex; align-items:center; gap:10px;
+    background:none; border:none; color:inherit; cursor:pointer;
+    font-family:inherit; padding:0; text-align:left;
+  }
+  .workout-card-main{flex:1; min-width:0;}
+  .workout-card-name{font-size:16px; font-weight:800; line-height:1.3;}
+  .workout-card-part{font-size:12px; font-weight:700; margin-top:3px;}
+  .workout-card-summary{
+    font-size:13px; color:var(--muted); margin-top:5px;
+    font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .workout-card.is-expanded .workout-card-summary{display:none;}
+  .card-tap-hint{
+    font-size:11px; color:var(--muted); margin-top:4px;
+  }
+  .workout-card.is-expanded .card-tap-hint{display:none;}
+  .card-chevron{
+    flex-shrink:0; width:24px; color:var(--muted); font-size:18px;
+    transition:transform .2s; line-height:1;
+  }
+  .workout-card.is-expanded .card-chevron{transform:rotate(90deg);}
+  .card-head-actions{display:flex; gap:10px; flex-shrink:0; align-items:center;}
+  .card-done-toggle{
+    width:44px; height:44px; border-radius:12px; border:2px solid var(--line);
+    background:none; color:transparent; font-size:16px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .workout-card.is-done .card-done-toggle{border-color:var(--done); background:var(--done); color:#0B0D10;}
+  .card-delete{
+    width:44px; height:44px; border-radius:12px; border:1px solid var(--line);
+    background:none; color:var(--muted); font-size:18px; cursor:pointer; flex-shrink:0;
+  }
+  .card-delete:active{color:var(--danger); border-color:var(--danger);}
+  .workout-card-body{display:none; padding:14px;}
+  .workout-card.is-expanded .workout-card-body{display:block;}
+
+  .set-line{
+    margin-bottom:12px; padding-bottom:12px;
+    border-bottom:1px solid var(--line);
+  }
+  .set-line:last-of-type{border-bottom:none; padding-bottom:0; margin-bottom:0;}
+  .set-line.is-done .set-line-label{color:var(--done);}
+  .set-line.is-done .set-line-inputs{opacity:0.72;}
+  .set-line-top{
+    display:flex; align-items:center; gap:8px; margin-bottom:8px;
+  }
+  .set-done-toggle{
+    width:36px; height:36px; border-radius:10px; border:2px solid var(--line);
+    background:none; color:transparent; font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .set-line.is-done .set-done-toggle{border-color:var(--done); background:var(--done); color:#0B0D10;}
+  .set-line-label{font-size:12px; color:var(--muted); font-weight:600; flex:1;}
+  .set-remove-link{
+    background:none; border:none; color:var(--muted); font-size:11px; font-weight:600;
+    cursor:pointer; font-family:inherit; padding:6px 8px; flex-shrink:0;
+  }
+  .set-remove-link:active{color:var(--danger);}
+  .set-line-inputs{display:flex; align-items:center; gap:8px;}
+  .set-line-inputs input{
+    flex:1; min-width:0; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:14px 10px; font-size:18px; color:var(--text); font-family:var(--mono); text-align:center;
+  }
+  .set-line-inputs input:focus{outline:none; border-color:var(--accent);}
+  .set-line-inputs input::placeholder{color:var(--muted); font-size:13px;}
+  .set-copy{
+    width:40px; height:40px; border-radius:10px; border:1px solid var(--line);
+    background:none; color:var(--accent); font-size:14px; cursor:pointer; flex-shrink:0;
+  }
+
+  .set-actions-zone{margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
+  .btn-add-set-card{
+    width:100%; padding:12px;
+    border-radius:12px; border:1px dashed var(--line);
+    background:none; color:var(--muted); font-size:14px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+  }
+  .card-safe-actions{margin-top:14px;}
+  .btn-collapse-card{
+    width:100%; padding:12px;
+    border-radius:12px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .card-danger-zone{
+    margin-top:20px; padding-top:14px; border-top:1px dashed rgba(255,90,78,.25);
+  }
+  .danger-zone-label{
+    font-size:11px; color:var(--muted); font-weight:600; margin-bottom:8px; letter-spacing:0.04em;
+  }
+  .btn-delete-ex-card{
+    width:100%; padding:12px;
+    border-radius:12px; border:1px solid rgba(255,90,78,.4);
+    background:none; color:var(--danger);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .day-danger-zone{
+    margin-top:24px; padding-top:16px; border-top:1px dashed rgba(255,90,78,.25);
+  }
+  .btn-reset-day{
+    width:100%; padding:12px;
+    border-radius:12px; border:1px solid rgba(255,90,78,.4);
+    background:none; color:var(--danger);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+
+  .empty-state{text-align:center; padding:48px 20px; color:var(--muted); line-height:1.7;}
+  .empty-state .big{font-size:40px; margin-bottom:12px;}
+
+  .finish-bar{
+    position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto;
+    padding:16px 16px 28px; background:linear-gradient(to top, var(--bg) 80%, transparent);
+  }
+
+  .hist-item{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:10px;}
+  .hist-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px;}
+  .hist-date{font-family:var(--mono); font-size:13px; color:var(--muted); font-weight:600;}
+  .hist-copy{
+    flex-shrink:0; min-height:40px; padding:8px 12px; border-radius:10px;
+    border:1px solid var(--line); background:var(--panel-2);
+    color:var(--text); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .hist-ex-row{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding:6px 0; border-bottom:1px solid var(--line);
+  }
+  .hist-ex-row:last-child{border-bottom:none; padding-bottom:0;}
+  .hist-ex-name{font-size:15px; font-weight:700; color:var(--text); flex:1; min-width:0;}
+  .hist-ex-stats{font-size:13px; color:var(--muted); text-align:right; flex-shrink:0; max-width:55%; line-height:1.4;}
+
+  .home-cta{display:flex; flex-direction:column; gap:8px; margin:14px 0 8px;}
+  .btn-today-workout{
+    width:100%; padding:16px; margin:0;
+    border-radius:14px; border:none;
+    background:var(--accent); color:#1a1200;
+    font-size:16px; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .btn-generate-menu{
+    width:100%; padding:14px; margin:0;
+    border-radius:14px; border:1px solid var(--line);
+    background:transparent; color:var(--text);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .btn-generate-menu:active{border-color:var(--accent); color:var(--accent);}
+  .cal-hint{
+    text-align:center; font-size:12px; color:var(--muted);
+    line-height:1.5; margin:0 0 4px;
+  }
+  .cal-section{margin-bottom:4px;}
+  .settings-block{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:16px; margin-bottom:12px;
+  }
+  .settings-block h2{
+    margin:0 0 6px; font-size:15px; font-weight:800;
+  }
+  .settings-desc{
+    margin:0 0 14px; font-size:12px; color:var(--muted); line-height:1.5;
+  }
+  .settings-field{margin-bottom:14px;}
+  .settings-field:last-child{margin-bottom:0;}
+  .settings-field label{
+    display:block; font-size:12px; color:var(--muted); font-weight:600; margin-bottom:8px;
+  }
+  .settings-field input[type="number"],
+  .settings-field input[type="text"],
+  .settings-field textarea{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:12px; color:var(--text); font-size:15px; font-family:inherit;
+  }
+  .settings-field textarea{min-height:72px; resize:vertical; line-height:1.55;}
+  .settings-field textarea#rule-text{
+    min-height:320px; font-size:14px; line-height:1.65;
+  }
+  .settings-actions{display:flex; flex-direction:column; gap:8px; margin-top:4px;}
+  .settings-link-btn{
+    width:100%; text-align:left; padding:14px 16px; border-radius:12px;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .settings-link-btn span{color:var(--muted); font-weight:600;}
+  .settings-danger{
+    width:100%; padding:14px; border-radius:12px;
+    border:1px solid rgba(255,90,78,.4); background:none; color:var(--danger);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+
+  .cal-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .cal-nav-label{font-weight:800; font-family:var(--mono); font-size:14px;}
+  .cal-nav button{
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    width:36px; height:36px; border-radius:8px; cursor:pointer; font-size:16px;
+  }
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .cal-cell{
+    aspect-ratio:1; max-height:36px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel); display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:var(--muted); cursor:pointer;
+  }
+  .cal-cell.empty{border:none; background:none; cursor:default;}
+  .cal-cell{position:relative;}
+  .cal-cardio-star{position:absolute;top:2px;left:3px;font-size:8px;line-height:1;color:#fff;text-shadow:0 0 3px rgba(167,139,250,0.9);pointer-events:none;}
+  .cal-cell.today{
+    border-color:var(--text); font-weight:800; color:var(--text);
+    outline:1px solid var(--text); outline-offset:0;
+  }
+  .cal-cell.trained{background:var(--done); color:#0B0D10; font-weight:800; outline:none; border-color:var(--done);}
+  .cal-cell.big3-bench{background:#FF6B6B; color:#0B0D10; font-weight:800; outline:none; border-color:#FF6B6B;}
+  .cal-cell.big3-squat{background:#35D48A; color:#0B0D10; font-weight:800; outline:none; border-color:#35D48A;}
+  .cal-cell.big3-dead{background:#4FA8FF; color:#0B0D10; font-weight:800; outline:none; border-color:#4FA8FF;}
+  .cal-cell.big3-cardio{background:#ffffff; color:#0B0D10; font-weight:800; outline:none; border-color:#ffffff;}
+  .cal-cell.part-colored{color:#0B0D10; font-weight:800; outline:none; border-color:transparent;}
+  .cal-legend{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 10px; padding:10px 12px; background:var(--panel); border:1px solid var(--line); border-radius:12px;}
+  .cal-legend-item{display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); font-weight:600;}
+  .cal-legend-dot{width:10px; height:10px; border-radius:3px; flex-shrink:0;}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:4px;}
+  .cal-weekdays span{font-size:10px; color:var(--muted); font-weight:700;}
+
+  .summary-section{margin-top:4px;}
+  .summary-title{font-size:13px; font-weight:700; color:var(--muted); margin-bottom:10px; letter-spacing:0.02em;}
+  .summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .summary-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:14px 12px;
+  }
+  .summary-card-wide{grid-column:1 / -1;}
+  .summary-label{font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600;}
+  .summary-value{
+    font-size:26px; font-weight:800; color:var(--accent);
+    font-family:var(--mono); line-height:1.1;
+  }
+  .summary-unit{font-size:13px; color:var(--text); font-weight:700; margin-left:3px;}
+
+  .save-hint{
+    font-size:12px; color:var(--muted); margin:-12px 0 16px; line-height:1.5;
+  }
+
+  .status-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 14px; margin-bottom:16px;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  }
+  .status-bar .status-label{font-size:13px; font-weight:700;}
+  .status-bar .status-label.before{color:var(--accent);}
+  .status-bar .status-label.after{color:var(--done);}
+  .status-bar .status-count{font-size:12px; color:var(--muted); font-family:var(--mono);}
+
+  .export-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:20px; margin-bottom:20px;
+  }
+  .export-panel label{display:block; font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600;}
+  .export-row{display:flex; gap:12px; margin-bottom:16px;}
+  .export-field{flex:1; min-width:0;}
+  .export-field input[type="date"]{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:14px 10px; color:var(--text); font-size:16px; font-family:inherit;
+  }
+  .export-field input[type="date"]:focus{outline:none; border-color:var(--accent);}
+  .export-meta{font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:16px;}
+  .export-presets{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;}
+  .export-preset{
+    padding:8px 12px; border-radius:999px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text); font-size:12px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+  }
+  .export-preset:active{border-color:var(--accent); color:var(--accent);}
+
+  .add-type-tabs{display:flex; gap:8px; margin-bottom:16px;}
+  .add-type-tab{
+    flex:1; padding:12px 10px; border-radius:12px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text); font-size:14px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+  }
+  .add-type-tab.is-active{border-color:var(--accent); color:var(--accent); background:rgba(255,176,32,.08);}
+  .video-embed-wrap{
+    position:relative; padding-bottom:56.25%; height:0; overflow:hidden;
+    border-radius:12px; margin-bottom:12px; background:#000;
+  }
+  .video-embed-wrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+  .video-note{font-size:13px; color:var(--muted); line-height:1.6;}
+
+  /* ---- dashboard ---- */
+  .sec-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;
+    text-transform:uppercase;margin:20px 0 10px;}
+  .sec-label:first-child{margin-top:0;}
+  .goal-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px;margin-bottom:10px;}
+  .goal-card .gc-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .goal-card .gc-title{font-size:14px;font-weight:700;}
+  .goal-card .gc-pct{font-size:13px;font-weight:700;}
+  .goal-card .gc-bar{height:6px;background:var(--panel-2);border-radius:99px;overflow:hidden;margin-bottom:10px;}
+  .goal-card .gc-fill{height:100%;border-radius:99px;transition:width .6s ease;}
+  .goal-card .gc-nums{display:flex;gap:12px;}
+  .goal-card .gc-item{flex:1;background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;}
+  .goal-card .gc-val{font-size:20px;font-weight:800;line-height:1;}
+  .goal-card .gc-lbl{font-size:10px;color:var(--muted);margin-top:3px;}
+  .cardio-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cardio-card .cc-left .cc-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+  .cardio-card .cc-left .cc-sub{font-size:12px;color:var(--muted);}
+  .cardio-card .cc-num{font-size:40px;font-weight:800;color:#ffffff;line-height:1;}
+  .cardio-card .cc-unit{font-size:12px;color:var(--muted);text-align:right;}
+  .freq-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px;}
+  .freq-chart-box{position:relative;height:160px;}
+  .tab-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;
+    -ms-overflow-style:none;scrollbar-width:none;}
+  .tab-scroll::-webkit-scrollbar{display:none;}
+  .tab-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    font-size:12px;padding:6px 14px;border-radius:99px;cursor:pointer;white-space:nowrap;
+    transition:all .15s;flex-shrink:0;}
+  .tab-btn.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .ex-chart-box{position:relative;height:200px;}
+  .tabs-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px;}
+  .session-card{border-bottom:1px solid var(--line);padding:14px 0;}
+  .session-card:last-child{border-bottom:none;}
+  .recent-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 16px 0;margin-bottom:10px;}
+  .s-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .s-date{font-size:14px;font-weight:700;}
+  .s-tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--panel-2);color:var(--muted);}
+  .s-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .s-chip{font-size:11px;background:var(--panel-2);border-radius:6px;padding:3px 8px;color:var(--muted);}
+  .dash-divider{height:1px;background:var(--line);margin:20px 0;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* DATA-START */
+const DATA = [];
+/* DATA-END */
+
+let ACTIVE_DATA = DATA; // CSV取込で上書き可能
+
+const CARDIO = '有酸素（トレッドミル）';
+const epley = (w,r) => r===1 ? w : Math.round(w*(1+r/30)*10)/10;
+const chartInst = {};
+const CHART_EXS = ['ベンチプレス','Tバーロー','スクワット','ラットプルダウン','パラレルアンダーグリップロー','ペックフライ'];
+const CHART_COLORS = ['#FFB020','#35D48A','#FF5A4E','#56d0e0','#a78bfa','#f472b6'];
+const DEFAULT_GOALS = [{ex:'ベンチプレス',goal:100},{ex:'Tバーロー',goal:90},{ex:'スクワット',goal:120}];
+const GOAL_COLORS = ['var(--bench)','var(--tbar)','var(--squat)'];
+const GOAL_ICONS = ['🏋️','🔱','🦵'];
+function loadGoalSettings(){
+  try{const s=localStorage.getItem('goal_settings_v1');if(s)return JSON.parse(s);}catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_GOALS));
+}
+function saveGoalSettings(s){try{localStorage.setItem('goal_settings_v1',JSON.stringify(s));}catch(e){}}
+
+function sessionDates(){
+  return [...new Set(ACTIVE_DATA.filter(d=>d.exercise!==CARDIO).map(d=>d.date))].sort();
+}
+function bestRM(ex){
+  const sets=ACTIVE_DATA.filter(d=>d.exercise===ex&&d.weight_kg>0);
+  if(!sets.length)return null;
+  return sets.reduce((b,d)=>{ const rm=epley(d.weight_kg,d.reps); return rm>b.rm?{rm,date:d.date,w:d.weight_kg,r:d.reps}:b; },{rm:0});
+}
+
+function renderGoalCard(slot,ex,goal,color,icon){
+  const b=bestRM(ex); const rm=b?b.rm:0;
+  const pct=Math.min(100,Math.round(rm/goal*100));
+  const prDate=b?b.date.slice(5).replace('-','/'):'--';
+  const exList=[...new Set(ACTIVE_DATA.filter(d=>d.exercise!==CARDIO&&d.weight_kg>0).map(d=>d.exercise))].sort();
+  const opts=exList.map(e=>`<option value="${e}">`).join('');
+  return `
+  <div class="goal-card" id="gc-slot-${slot}">
+    <div class="gc-head">
+      <div class="gc-title">${icon} ${ex} ${goal}kg</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="font-size:11px;color:var(--muted)">${prDate}</div>
+        <div class="gc-pct" style="color:${color}">${pct}%</div>
+        <button class="gc-edit-btn" data-gc-slot="${slot}" title="目標を変更" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:0.6;padding:0">✏️</button>
+      </div>
+    </div>
+    <div class="gc-bar"><div class="gc-fill" style="width:${pct}%;background:${color}"></div></div>
+    <div class="gc-nums">
+      <div class="gc-item"><div class="gc-val" style="color:${color}">${rm}</div><div class="gc-lbl">推定1RM (kg)</div></div>
+      <div class="gc-item"><div class="gc-val">${goal}</div><div class="gc-lbl">目標 (kg)</div></div>
+      <div class="gc-item"><div class="gc-val" style="color:var(--danger)">-${Math.round((goal-rm)*10)/10}</div><div class="gc-lbl">残り (kg)</div></div>
+    </div>
+    <datalist id="gc-ex-list-${slot}">${opts}</datalist>
+    <div class="gc-edit-form" id="gc-edit-form-${slot}" style="display:none;margin-top:10px">
+      <div style="display:flex;gap:6px;align-items:center">
+        <input list="gc-ex-list-${slot}" id="gc-ex-input-${slot}" value="${ex}" placeholder="種目名" style="flex:1;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:13px">
+        <input type="number" id="gc-goal-input-${slot}" value="${goal}" min="1" max="999" step="0.5" style="width:58px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:13px">
+        <span style="font-size:11px;color:var(--muted)">kg</span>
+        <button class="gc-save-btn" data-gc-slot="${slot}" style="padding:6px 12px;border-radius:8px;background:var(--accent);color:#0B0D10;border:none;font-size:12px;font-weight:700;cursor:pointer">保存</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderCardio(){
+  const total=ACTIVE_DATA.filter(d=>d.exercise===CARDIO).length;
+  const today=new Date();
+  const dow=today.getDay()===0?6:today.getDay()-1;
+  const mon=new Date(today); mon.setDate(today.getDate()-dow);
+  const monStr=mon.toISOString().slice(0,10);
+  const sunStr=new Date(mon.getTime()+6*86400000).toISOString().slice(0,10);
+  const week=ACTIVE_DATA.filter(d=>d.exercise===CARDIO&&d.date>=monStr&&d.date<=sunStr).length;
+  document.getElementById('goals').innerHTML+=`
+  <div class="cardio-card">
+    <div class="cc-left"><div class="cc-title">🏃 有酸素</div><div class="cc-sub">累計 ${total}回</div></div>
+    <div><div class="cc-num">${week}</div><div class="cc-unit">回 / 今週</div></div>
+  </div>`;
+}
+function renderFreqChart(){
+  const dates=sessionDates();
+  const weekMap={};
+  dates.forEach(ds=>{
+    const d=new Date(ds); const dow=d.getDay()===0?6:d.getDay()-1;
+    const mon=new Date(d); mon.setDate(d.getDate()-dow);
+    const key=mon.toISOString().slice(0,10);
+    weekMap[key]=(weekMap[key]||0)+1;
+  });
+  const keys=Object.keys(weekMap).sort();
+  const labels=keys.map(k=>{const d=new Date(k);return `${d.getMonth()+1}/${d.getDate()}週`;});
+  const vals=keys.map(k=>weekMap[k]);
+  new Chart(document.getElementById('freq-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'回',data:vals,
+      backgroundColor:vals.map(v=>v>=4?'#FFB020':v>=3?'#b37800':v>=2?'#5a3d00':'#2A2F35'),
+      borderRadius:6,borderColor:'transparent'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y}回`}}},
+      scales:{
+        x:{ticks:{color:'#9AA0A6',font:{size:11}},grid:{display:false}},
+        y:{min:0,max:5,ticks:{color:'#9AA0A6',font:{size:11},stepSize:1},grid:{color:'#2A2F35'}}
+      }}
+  });
+}
+function renderExerciseTabs(){
+  const bar=document.getElementById('tab-bar');
+  const panels=document.getElementById('tab-panels');
+  if(!bar||!panels)return;
+  CHART_EXS.forEach((ex,i)=>{
+    const btn=document.createElement('button');
+    btn.className='tab-btn'+(i===0?' active':'');
+    btn.textContent=ex;
+    btn.onclick=()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tp-'+i).classList.add('active');
+      if(!chartInst[i])buildChart(ex,i);
+    };
+    bar.appendChild(btn);
+    const p=document.createElement('div');
+    p.className='tab-panel'+(i===0?' active':'');
+    p.id='tp-'+i;
+    p.innerHTML=`<div class="ex-chart-box"><canvas id="ec-${i}"></canvas></div>`;
+    panels.appendChild(p);
+  });
+  buildChart(CHART_EXS[0],0);
+}
+function buildChart(ex,idx){
+  const sets=ACTIVE_DATA.filter(d=>d.exercise===ex&&d.weight_kg>0);
+  const byDate={};
+  sets.forEach(d=>{const rm=epley(d.weight_kg,d.reps);if(!byDate[d.date]||rm>byDate[d.date])byDate[d.date]=rm;});
+  const labels=Object.keys(byDate).sort().map(d=>d.slice(5));
+  const vals=Object.keys(byDate).sort().map(d=>byDate[d]);
+  const color=CHART_COLORS[idx%CHART_COLORS.length];
+  if(chartInst[idx])chartInst[idx].destroy();
+  chartInst[idx]=new Chart(document.getElementById('ec-'+idx).getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{label:'推定1RM',data:vals,borderColor:color,backgroundColor:color+'22',
+      fill:true,tension:0.3,pointRadius:4,pointBackgroundColor:color}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#9AA0A6',font:{size:10}},grid:{color:'#2A2F35'}},
+        y:{ticks:{color:'#9AA0A6',font:{size:10}},grid:{color:'#2A2F35'}}
+      }}
+  });
+}
+function renderRecent(){
+  const dates=sessionDates().slice(-5).reverse();
+  const el=document.getElementById('recent');
+  if(!el)return;
+  el.innerHTML=dates.map(date=>{
+    const sets=ACTIVE_DATA.filter(d=>d.date===date&&d.exercise!==CARDIO);
+    const exs=[...new Set(sets.map(d=>d.exercise))];
+    const cardio=ACTIVE_DATA.find(d=>d.date===date&&d.exercise===CARDIO);
+    return `<div class="session-card">
+      <div class="s-head">
+        <div class="s-date">${date}</div>
+        <div class="s-tag">${exs.length}種目${cardio?' 🏃':''}</div>
+      </div>
+      <div class="s-chips">
+        ${exs.map(ex=>{
+          const s=sets.filter(d=>d.exercise===ex);
+          return `<div class="s-chip">${ex} ${Math.max(...s.map(d=>d.weight_kg))}kg×${s.length}セット</div>`;
+        }).join('')}
+        ${cardio?`<div class="s-chip">🏃 ${cardio.notes}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function parseCSVLine(line, sep=','){
+  const result=[];let cur='';let inQ=false;
+  for(const c of line){
+    if(c==='"'){inQ=!inQ;}
+    else if(c===sep&&!inQ){result.push(cur.trim());cur='';}
+    else{cur+=c;}
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function detectCsvSeparator(headerLine){
+  const comma = (headerLine.match(/,/g)||[]).length;
+  const semi = (headerLine.match(/;/g)||[]).length;
+  const tab = (headerLine.match(/\t/g)||[]).length;
+  if(tab >= comma && tab >= semi && tab > 0) return '\t';
+  if(semi > comma) return ';';
+  return ',';
+}
+
+function normalizeCsvHeader(h){
+  return String(h||'')
+    .replace(/^\uFEFF/,'')
+    .replace(/[（）]/g, m=>({ '（':'(', '）':')', 'ｋ':'k', 'ｇ':'g' }[m]||m))
+    .trim()
+    .toLowerCase();
+}
+
+function findCsvColumn(header, aliases, { allowIncludes=true }={}){
+  const normalized = header.map(normalizeCsvHeader);
+  const aliasList = aliases.map(a=>a.toLowerCase()).sort((a,b)=>b.length-a.length);
+  for(const alias of aliasList){
+    const i = normalized.indexOf(alias);
+    if(i >= 0) return i;
+  }
+  if(allowIncludes){
+    for(const alias of aliasList){
+      if(alias.length < 2) continue;
+      const i = normalized.findIndex(h=>h.includes(alias));
+      if(i >= 0) return i;
+    }
+  }
+  return -1;
+}
+
+function normalizeImportDate(raw){
+  let s = String(raw||'').trim();
+  // 2026年8月4日
+  const jp = s.match(/^(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
+  if(jp) return `${jp[1]}-${String(+jp[2]).padStart(2,'0')}-${String(+jp[3]).padStart(2,'0')}`;
+  s = s.replace(/[\/\.]/g,'-');
+  // 先頭の日付部分だけ使う（「2026-08-04（火）」など）
+  const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(!m) return '';
+  return `${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}`;
+}
+
+function resolveCsvColumns(header){
+  return {
+    date: findCsvColumn(header, ['date','日付','日付け','実施日','記録日','トレーニング日','日付・曜日','日付・時刻']),
+    ex: findCsvColumn(header, ['exercise','種目','種目名','エクササイズ','種目・種目名','トレーニング種目']),
+    set: findCsvColumn(header, ['setorder','set','セット','セット順','セット番号','セット数']),
+    w: findCsvColumn(header, ['weight_kg','weight','重量(kg)','重量kg','重量']),
+    r: findCsvColumn(header, ['reps','回数','レップ','レップス','回']),
+    n: findCsvColumn(header, ['notes','メモ','備考','ノート','備考欄'])
+  };
+}
+
+function parseCSV(text){
+  const clean = String(text||'').replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
+  if(!clean) return { rows:[], error:'ファイルが空です', header:[] };
+  const lines = clean.split('\n').filter(l=>l.trim().length);
+  if(!lines.length) return { rows:[], error:'ファイルが空です', header:[] };
+
+  const sep = detectCsvSeparator(lines[0]);
+  const header = parseCSVLine(lines[0], sep);
+  let idx = resolveCsvColumns(header);
+
+  // ヘッダーが英語/日本語で取れない場合、1列目が日付なら位置で推定
+  if(idx.date < 0 || idx.ex < 0){
+    const sample = lines.slice(1, 6).map(l=>parseCSVLine(l, sep));
+    const looksDated = sample.filter(c=>normalizeImportDate(c[0]||'')).length >= Math.min(2, sample.length);
+    if(looksDated && header.length >= 2){
+      idx = {
+        date: 0,
+        ex: 1,
+        set: header.length >= 5 ? 2 : -1,
+        w: header.length >= 4 ? (header.length >= 5 ? 3 : 2) : -1,
+        r: header.length >= 4 ? (header.length >= 5 ? 4 : 3) : (header.length >= 3 ? 2 : -1),
+        n: header.length >= 6 ? 5 : -1
+      };
+      // 4列: 日付,種目,回数,重量(kg) のような旧形式
+      if(header.length === 4){
+        const h2 = normalizeCsvHeader(header[2]);
+        const h3 = normalizeCsvHeader(header[3]);
+        if(h2.includes('重量') || h2.includes('weight') || h2.includes('kg')){
+          idx.w = 2; idx.r = 3; idx.set = -1;
+        }else if(h3.includes('重量') || h3.includes('weight') || h3.includes('kg') || /\(kg\)/.test(h3)){
+          idx.r = 2; idx.w = 3; idx.set = -1;
+        }else{
+          // デフォルト: 日付,種目,回数,重量
+          idx.r = 2; idx.w = 3; idx.set = -1;
+        }
+      }
+    }
+  }
+
+  if(idx.date < 0 || idx.ex < 0){
+    return {
+      rows: [],
+      header,
+      error: `ヘッダー行が認識できませんでした\n見つかった列: ${header.join(' / ') || '(なし)'}\n必要: Date(または日付), Exercise(または種目)`
+    };
+  }
+
+  const rows = [];
+  lines.slice(1).forEach((l, lineIdx)=>{
+    const c = parseCSVLine(l, sep);
+    const weightRaw = idx.w >= 0 ? c[idx.w] : '';
+    const repsRaw = idx.r >= 0 ? c[idx.r] : '';
+    const date = normalizeImportDate(c[idx.date]||'');
+    const exercise = (c[idx.ex]||'').trim();
+    if(!date || !exercise) return;
+    rows.push({
+      date,
+      exercise,
+      set: idx.set >= 0 ? (parseInt(c[idx.set],10)||1) : (lineIdx + 1),
+      weight_kg: weightRaw === '' || weightRaw == null ? 0 : (parseFloat(String(weightRaw).replace(',','.'))||0),
+      reps: repsRaw === '' || repsRaw == null ? 0 : (parseInt(repsRaw,10)||0),
+      notes: idx.n >= 0 ? (c[idx.n]||'') : ''
+    });
+  });
+
+  // セット列がない場合は同一日・同一種目内で 1,2,3... に振り直す
+  if(idx.set < 0){
+    const counter = {};
+    rows.forEach(r=>{
+      const key = r.date+'|'+r.exercise;
+      counter[key] = (counter[key]||0)+1;
+      r.set = counter[key];
+    });
+  }
+
+  if(!rows.length){
+    return { rows:[], header, error:'データ行を読めませんでした\n日付は YYYY-MM-DD（または 2026/8/4）形式か確認してください' };
+  }
+  return { rows, header, error:null };
+}
+
+function inferPartIdForImport(name){
+  const found = findPartIdForExercise(name);
+  if(found) return found;
+  const n = name || '';
+  if(n.includes('トレッドミル')||n.includes('ランニング')||n.includes('ウォーキング')||n.includes('エアロバイク')||n.includes('有酸素')) return 'cardio';
+  if(n.includes('ベンチ')||n.includes('チェスト')||n.includes('フライ')||n.includes('ペック')||n.includes('インクライン')) return 'chest';
+  if(n.includes('デッド')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('ラット')||n.includes('シュラッグ')||n.includes('プルオーバー')) return 'back';
+  if(n.includes('スクワット')||n.includes('レッグ')||n.includes('ランジ')||n.includes('ヒップ')||n.includes('ハック')) return 'legs';
+  if(n.includes('カール')||n.includes('二頭')||n.includes('ハンマー')) return 'biceps';
+  if(n.includes('プレスダウン')||n.includes('エクステンション')||n.includes('三頭')||n.includes('キックバック')) return 'triceps';
+  return 'chest';
+}
+
+function ensureExerciseInCatalog(partId, name){
+  if(!state.catalog) state.catalog = JSON.parse(JSON.stringify(DEFAULT_CATALOG));
+  if(!state.catalog[partId]){
+    state.catalog[partId] = { name:partId, color:'#888', exercises:[] };
+  }
+  if(!state.catalog[partId].exercises.includes(name)){
+    state.catalog[partId].exercises.push(name);
+  }
+}
+
+function csvRowsToHistory(rows){
+  const byDate = {};
+  rows.forEach(r=>{
+    if(!byDate[r.date]) byDate[r.date] = {};
+    if(!byDate[r.date][r.exercise]) byDate[r.date][r.exercise] = [];
+    byDate[r.date][r.exercise].push(r);
+  });
+
+  return Object.keys(byDate).sort().map(date=>{
+    const exercises = Object.keys(byDate[date]).map((name, i)=>{
+      const partId = inferPartIdForImport(name);
+      ensureExerciseInCatalog(partId, name);
+      const sets = byDate[date][name]
+        .slice()
+        .sort((a,b)=>(a.set||0)-(b.set||0))
+        .map(r=>({
+          weight: String(r.weight_kg ?? ''),
+          reps: String(r.reps ?? ''),
+          done: true
+        }));
+      return {
+        id: `we_imp_${date.replace(/-/g,'')}_${i}`,
+        name,
+        partId,
+        type: 'weight',
+        videoUrl: '',
+        done: true,
+        sets: sets.length ? sets : [createEmptySet('','')]
+      };
+    });
+    return { date, exercises };
+  });
+}
+
+function mergeHistoryFromImport(imported, mode){
+  if(mode === 'replace'){
+    state.history = imported;
+    return;
+  }
+  const map = new Map(state.history.map(h=>[h.date, h]));
+  imported.forEach(h=>map.set(h.date, h));
+  state.history = [...map.values()].sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function scoreCsvCandidate(parsed, text){
+  const head = (String(text||'').replace(/^\uFEFF/,'').split('\n')[0]||'');
+  let score = 0;
+  if(parsed.rows?.length) score += 1000 + Math.min(parsed.rows.length, 500);
+  if(/日付|実施日|記録日|Date/i.test(head)) score += 20;
+  if(/種目|Exercise/i.test(head)) score += 20;
+  if(/重量|Weight/i.test(head)) score += 10;
+  if(/回数|Reps/i.test(head)) score += 10;
+  // 文字化け・置換文字を強く減点（UTF-8をShift-JISで読んだケース）
+  if(/ｿ|�|縺|繝/.test(head)) score -= 80;
+  return score;
+}
+
+async function readCsvFileText(file){
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  const hasUtf8Bom = bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF;
+  const trials = hasUtf8Bom ? ['utf-8', 'shift-jis'] : ['utf-8', 'shift-jis'];
+
+  let best = null;
+  for(const enc of trials){
+    try{
+      const text = new TextDecoder(enc, { fatal:false }).decode(buf);
+      const parsed = parseCSV(text);
+      const score = scoreCsvCandidate(parsed, text) + (hasUtf8Bom && enc === 'utf-8' ? 30 : 0);
+      if(!best || score > best.score) best = { text, parsed, encoding: enc, score };
+    }catch(e){ /* try next */ }
+  }
+  if(best) return best;
+  const text = new TextDecoder('utf-8').decode(buf);
+  return { text, parsed: parseCSV(text), encoding: 'utf-8', score: 0 };
+}
+
+async function importCSV(file){
+  try{
+    const { parsed, encoding } = await readCsvFileText(file);
+    if(!parsed.rows.length){
+      alert(`CSVの読み込みに失敗しました\n\n${parsed.error || '形式を確認してください'}`);
+      return;
+    }
+
+    const dates = [...new Set(parsed.rows.map(r=>r.date))].sort();
+    const importedHistory = csvRowsToHistory(parsed.rows);
+    const hasExisting = (state.history||[]).length > 0;
+    let mode = 'replace';
+    if(hasExisting){
+      const choice = confirm(
+        `CSVを読み込みました（${parsed.rows.length}セット / ${dates.length}日 / ${encoding}）\n期間: ${dates[0]} 〜 ${dates[dates.length-1]}\n\nOK: 既存履歴とマージ（同じ日付はCSV優先）\nキャンセル: 取り込みを中止`
+      );
+      if(!choice) return;
+      mode = 'merge';
+    }else if(!confirm(
+      `CSVを履歴へ取り込みますか？\n${parsed.rows.length}セット / ${dates.length}日\n期間: ${dates[0]} 〜 ${dates[dates.length-1]}`
+    )){
+      return;
+    }
+
+    ACTIVE_DATA = parsed.rows;
+    try{ localStorage.setItem('csv_import_v1', JSON.stringify(parsed.rows)); }catch(err){}
+    mergeHistoryFromImport(importedHistory, mode);
+    state.draft = null;
+    state.workDate = null;
+    state.expandedExIds = [];
+    await persist();
+    openCalendarScreen();
+    render();
+    alert(`✅ 取り込み完了\nセット数: ${parsed.rows.length}\n日数: ${dates.length}\n方式: ${mode==='merge'?'マージ':'新規'}\n\nカレンダーに色が付いていれば成功です。`);
+  }catch(err){
+    alert('CSVの形式が正しくありません: '+(err.message||err));
+  }
+}
+
+function initDashboard(){
+  const settings=loadGoalSettings();
+  let html='';
+  settings.forEach((s,i)=>{ html+=renderGoalCard(i,s.ex,s.goal,GOAL_COLORS[i],GOAL_ICONS[i]); });
+  document.getElementById('goals').innerHTML=html;
+  renderCardio();
+  // 編集ボタン
+  document.querySelectorAll('.gc-edit-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const slot=btn.dataset.gcSlot;
+      const form=document.getElementById('gc-edit-form-'+slot);
+      form.style.display=form.style.display==='none'?'block':'none';
+    });
+  });
+  // 保存ボタン
+  document.querySelectorAll('.gc-save-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const slot=parseInt(btn.dataset.gcSlot);
+      const ex=document.getElementById('gc-ex-input-'+slot).value.trim();
+      const goal=parseFloat(document.getElementById('gc-goal-input-'+slot).value);
+      if(!ex||!goal||goal<=0)return;
+      const s=loadGoalSettings();
+      s[slot]={ex,goal};
+      saveGoalSettings(s);
+      initDashboard();
+    });
+  });
+}
+
+const STORAGE = {
+  catalog: 'catalog_v3',
+  history: 'history_v2',
+  draft: 'draft_v2',
+  workDate: 'work_date_v2',
+  circuits: 'circuits_v2',
+  menuRules: 'menu_rules_v1',
+  menuRulesText: 'menu_rules_text_v1'
+};
+
+const DEFAULT_YOUTUBE_CIRCUITS = [
+  { id:'yt_dumbbell', name:'YouTubeダンベルサーキット', url:'' },
+  { id:'yt_chest', name:'YouTube胸サーキット', url:'' },
+  { id:'yt_back', name:'YouTube背中サーキット', url:'' },
+  { id:'yt_shoulder', name:'YouTube肩サーキット', url:'' },
+  { id:'yt_legs', name:'YouTube脚サーキット', url:'' },
+  { id:'yt_full', name:'YouTube全身サーキット', url:'' }
+];
+
+const DEFAULT_CATALOG = {
+  chest:    { name:'胸',   color:'#FF6B6B', exercises:['ベンチプレス','インクラインダンベルプレス','アイソラテラルワイドチェスト','ペックフライ'] },
+  back:     { name:'背中', color:'#4FA8FF', exercises:['ラットプル（マシン）','Tバーロー','ラットプル（パラレルアンダーグリップ）','アシストチンニング'] },
+  legs:     { name:'脚',   color:'#35D48A', exercises:['スクワット'] },
+  biceps:   { name:'二頭', color:'#FFB020', exercises:['ケーブルアームカール','ケーブルハンマーカール','ビハインドカール（前腕）'] },
+  triceps:  { name:'三頭', color:'#FF8B6B', exercises:['ケーブルプレスダウン','ケーブルオーバーヘッドエクステンション'] },
+  cardio:   { name:'有酸素', color:'#6B9FFF', exercises:['有酸素（トレッドミル）'] }
+};
+
+const PART_ORDER = ['chest','back','legs','biceps','triceps','cardio'];
+const DEFAULT_SET_COUNT = 3;
+
+/**
+ * DEFAULT_MENU_RULES — 自然言語ルールを解釈した結果の内部表現。
+ * 設定画面では DEFAULT_MENU_RULES_TEXT を編集する。
+ */
+const DEFAULT_MENU_RULES = {
+  version: 1,
+  summary: '',
+  primaryRotation: ['chest', 'back', 'legs'],
+  pairings: {
+    chest: ['triceps'],
+    back: ['biceps'],
+    legs: []
+  },
+  minRestDaysByPart: {
+    chest: 2,
+    back: 2,
+    legs: 3,
+    biceps: 1,
+    triceps: 1,
+    cardio: 0
+  },
+  exercisesPerPrimary: 3,
+  exercisesPerAccessory: 2,
+  defaultSetCount: 3,
+  defaultReps: 8,
+  bootstrapPrimary: 'chest',
+  lookbackDays: 28,
+  progression: {
+    enabled: true,
+    targetReps: 8,
+    incrementKg: 2.5
+  },
+  cardio: {
+    enabled: true,
+    partId: 'cardio',
+    targetPerWeek: 2,
+    skipWithPrimary: ['legs']
+  }
+};
+
+const DEFAULT_MENU_RULES_TEXT = `胸・背中・脚を、回復が足りている部位から優先してローテーションする。
+
+・主部位は1日3種目、補助は2種目
+・胸の日は三頭、背中の日は二頭を付ける。脚の日は補助なし
+・最短休養は胸2日、背中2日、脚3日
+・セット数は3、目標回数は8回
+・前回の全セットで8回以上できたら、重量を2.5kg増やす
+・有酸素は週2回を目標。脚の日には付けない`;
+
+function cloneMenuRules(src){
+  return JSON.parse(JSON.stringify(src || DEFAULT_MENU_RULES));
+}
+
+function normalizeMenuRules(raw){
+  const base = cloneMenuRules(DEFAULT_MENU_RULES);
+  if(!raw || typeof raw !== 'object') return base;
+  const r = { ...base, ...raw };
+  r.pairings = { ...base.pairings, ...(raw.pairings || {}) };
+  r.minRestDaysByPart = { ...base.minRestDaysByPart, ...(raw.minRestDaysByPart || {}) };
+  r.progression = { ...base.progression, ...(raw.progression || {}) };
+  r.cardio = { ...base.cardio, ...(raw.cardio || {}) };
+  r.primaryRotation = Array.isArray(raw.primaryRotation) && raw.primaryRotation.length
+    ? raw.primaryRotation : base.primaryRotation;
+  r.exercisesPerPrimary = Math.max(1, Math.min(6, Number(r.exercisesPerPrimary) || base.exercisesPerPrimary));
+  r.exercisesPerAccessory = Math.max(0, Math.min(4, Number(r.exercisesPerAccessory) || 0));
+  r.defaultSetCount = Math.max(1, Math.min(10, Number(r.defaultSetCount) || base.defaultSetCount));
+  r.defaultReps = Math.max(1, Math.min(30, Number(r.defaultReps) || base.defaultReps));
+  r.progression.targetReps = Math.max(1, Math.min(30, Number(r.progression.targetReps) || 8));
+  r.progression.incrementKg = Math.max(0, Math.min(20, Number(r.progression.incrementKg) || 0));
+  r.progression.enabled = !!r.progression.enabled;
+  r.cardio.enabled = !!r.cardio.enabled;
+  r.cardio.targetPerWeek = Math.max(0, Math.min(7, Number(r.cardio.targetPerWeek) || 0));
+  r.cardio.skipWithPrimary = Array.isArray(r.cardio.skipWithPrimary) ? r.cardio.skipWithPrimary : ['legs'];
+  ['chest','back','legs','biceps','triceps','cardio'].forEach(k=>{
+    r.minRestDaysByPart[k] = Math.max(0, Math.min(14, Number(r.minRestDaysByPart[k]) ?? base.minRestDaysByPart[k]));
+  });
+  return r;
+}
+
+function extractJsonFromRulesText(text){
+  const src = String(text || '');
+  const fenced = src.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidates = [];
+  if(fenced) candidates.push(fenced[1].trim());
+  const start = src.indexOf('{');
+  const end = src.lastIndexOf('}');
+  if(start >= 0 && end > start) candidates.push(src.slice(start, end + 1));
+  for(const c of candidates){
+    try{
+      const obj = JSON.parse(c);
+      if(obj && typeof obj === 'object' && !Array.isArray(obj)) return obj;
+    }catch(e){ /* next */ }
+  }
+  return null;
+}
+
+function parseRulesFromNaturalLanguage(text){
+  const raw = String(text || '').trim();
+  const next = cloneMenuRules(DEFAULT_MENU_RULES);
+  next.summary = raw;
+
+  const json = extractJsonFromRulesText(raw);
+  if(json){
+    return normalizeMenuRules({ ...next, ...json, summary: raw });
+  }
+
+  const num = (re, fallback)=>{
+    const m = raw.match(re);
+    return m ? Number(m[1]) : fallback;
+  };
+
+  next.exercisesPerPrimary = num(/主部位[^\d\n]{0,12}(\d+)\s*種目/, next.exercisesPerPrimary);
+  next.exercisesPerAccessory = num(/補助[^\d\n]{0,12}(\d+)\s*種目/, next.exercisesPerAccessory);
+  next.defaultSetCount = num(/セット数[^\d\n]{0,8}(\d+)/, next.defaultSetCount);
+  next.defaultReps = num(/(?:デフォルト|目標)?回数[^\d\n]{0,8}(\d+)/, next.defaultReps);
+  next.minRestDaysByPart.chest = num(/胸[^\d\n]{0,6}(\d+)\s*日/, next.minRestDaysByPart.chest);
+  next.minRestDaysByPart.back = num(/背中[^\d\n]{0,6}(\d+)\s*日/, next.minRestDaysByPart.back);
+  next.minRestDaysByPart.legs = num(/脚[^\d\n]{0,6}(\d+)\s*日/, next.minRestDaysByPart.legs);
+
+  if(/胸の日に三頭を付けない|胸[^\n]{0,10}三頭なし|三頭を追加しない/.test(raw)) next.pairings.chest = [];
+  else if(/胸[^\n]{0,20}三頭|三頭[^\n]{0,20}胸/.test(raw)) next.pairings.chest = ['triceps'];
+
+  if(/背中の日に二頭を付けない|背中[^\n]{0,10}二頭なし|二頭を追加しない/.test(raw)) next.pairings.back = [];
+  else if(/背中[^\n]{0,20}二頭|二頭[^\n]{0,20}背中/.test(raw)) next.pairings.back = ['biceps'];
+
+  if(/負荷アップなし|重量アップしない|プログレッションなし/.test(raw)){
+    next.progression.enabled = false;
+  }else if(/増やす|アップ|プログレッション|負荷アップ/.test(raw)){
+    next.progression.enabled = true;
+  }
+  next.progression.targetReps = num(/(?:全セットで|目標)\s*(\d+)\s*回/, next.progression.targetReps);
+  next.progression.incrementKg = num(/([0-9]+(?:\.[0-9]+)?)\s*kg\s*増/, next.progression.incrementKg);
+
+  if(/有酸素なし|有酸素を含めない|有酸素を付けない/.test(raw) && !/脚の日/.test(raw)){
+    next.cardio.enabled = false;
+  }else if(/有酸素/.test(raw)){
+    next.cardio.enabled = true;
+  }
+  next.cardio.targetPerWeek = num(/有酸素[^\d\n]{0,12}週\s*(\d+)/, next.cardio.targetPerWeek);
+  if(/脚の日[^\n]{0,12}有酸素を?(付けない|含めない)|有酸素[^\n]{0,12}脚の日/.test(raw)){
+    next.cardio.skipWithPrimary = ['legs'];
+  }else if(/脚の日にも有酸素/.test(raw)){
+    next.cardio.skipWithPrimary = [];
+  }
+
+  return normalizeMenuRules(next);
+}
+
+function getMenuRules(){
+  return state.menuRules || DEFAULT_MENU_RULES;
+}
+
+function getMenuRulesText(){
+  return state.menuRulesText || DEFAULT_MENU_RULES_TEXT;
+}
+
+async function saveMenuRulesFromText(text){
+  const trimmed = String(text || '').trim();
+  state.menuRulesText = trimmed || DEFAULT_MENU_RULES_TEXT;
+  state.menuRules = parseRulesFromNaturalLanguage(state.menuRulesText);
+  await save(STORAGE.menuRulesText, state.menuRulesText);
+  await save(STORAGE.menuRules, state.menuRules);
+}
+
+let outsideCloseCleanup = null;
+let collapseSuppressUntil = 0;
+
+let state = {
+  catalog: null,
+  circuits: [],
+  history: [],
+  draft: null,
+  workDate: null,
+  menuRules: null,
+  menuRulesText: null,
+  screen: { name: 'calendar' },
+  expandedExIds: [],
+  meta: { recentIds: [], favoriteIds: [], templates: [] }
+};
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function getWorkDate(){ return state.workDate || todayStr(); }
+function isToday(d){ return d === todayStr(); }
+function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function load(key){ try{ const r=localStorage.getItem(key); return r?JSON.parse(r):null; }catch(e){ return null; } }
+async function save(key,val){ try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){} }
+
+function createEmptySet(w='',r=''){ return { weight:String(w), reps:String(r), done:false }; }
+function createDefaultSets(n=DEFAULT_SET_COUNT){ return Array.from({length:n},()=>createEmptySet()); }
+
+function getPart(partId){ return state.catalog[partId]; }
+function getPartList(){ return PART_ORDER.map(id=>({ id, ...state.catalog[id] })); }
+function getCircuit(id){ return state.circuits.find(c=>c.id===id); }
+
+function youtubeEmbedUrl(url){
+  if(!url) return '';
+  const m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/]+)/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : url;
+}
+
+function openCalendarScreen(){
+  const n=new Date();
+  state.screen={name:'calendar',year:n.getFullYear(),month:n.getMonth()};
+}
+
+async function openEditDate(date){
+  state.workDate=isToday(date)?null:date;
+  if(state.draft?.date !== date) state.draft=null;
+  state.expandedExIds=[];
+  await save(STORAGE.workDate,state.workDate);
+  state.screen={name:'home'};
+  render();
+}
+
+function ensureDraft(){
+  const date = getWorkDate();
+  const hist = state.history.find(h=>h.date===date);
+
+  if(state.draft && state.draft.date === date){
+    if(!state.draft.exercises.length && hist)
+      state.draft = JSON.parse(JSON.stringify(hist));
+    return normalizeDraft(state.draft);
+  }
+
+  state.draft = hist
+    ? JSON.parse(JSON.stringify(hist))
+    : { date, exercises: [] };
+  return normalizeDraft(state.draft);
+}
+
+function normalizeSet(set){
+  return {
+    weight: set?.weight || '',
+    reps: set?.reps || '',
+    done: !!set?.done
+  };
+}
+
+function normalizeExercise(ex){
+  return {
+    id: ex.id,
+    name: ex.name,
+    partId: ex.partId,
+    type: ex.type || 'weight',
+    videoUrl: ex.videoUrl || '',
+    done: !!ex.done,
+    sets: (ex.sets || []).map(normalizeSet)
+  };
+}
+
+function normalizeDraft(draft){
+  draft.exercises = (draft.exercises || []).map(normalizeExercise);
+  return draft;
+}
+
+function isWorkoutSaved(draft){
+  const hist = state.history.find(h=>h.date===draft.date);
+  if(!hist || !draft.exercises.length) return false;
+  return JSON.stringify(normalizeExercises(hist.exercises)) === JSON.stringify(normalizeExercises(draft.exercises));
+}
+
+function normalizeExercises(list){
+  return list.map(ex=>({
+    name: ex.name,
+    partId: ex.partId,
+    type: ex.type || 'weight',
+    videoUrl: ex.videoUrl || '',
+    done: !!ex.done,
+    sets: (ex.sets || []).map(normalizeSet)
+  }));
+}
+
+function isSetLogged(set){ return !!(set.weight || set.reps); }
+
+function getWorkoutStatus(draft){
+  if(!draft.exercises.length) return 'empty';
+  const doneCount = draft.exercises.filter(e=>e.done).length;
+  if(doneCount === draft.exercises.length) return 'after';
+  return 'before';
+}
+
+function addExerciseToDraft({ partId, name, type='weight', videoUrl='' }){
+  const draft = ensureDraft();
+  const id = 'we_'+Date.now();
+  const ex = {
+    id,
+    partId,
+    name,
+    type,
+    done: false,
+    videoUrl: type === 'video' ? videoUrl : '',
+    sets: type === 'video' ? [] : createDefaultSets()
+  };
+  draft.exercises.push(ex);
+  return id;
+}
+
+function removeExerciseFromDraft(exId){
+  const draft = ensureDraft();
+  draft.exercises = draft.exercises.filter(e=>e.id!==exId);
+}
+
+async function resetDayWorkout(){
+  const draft = ensureDraft();
+  const date = draft.date;
+  const hasDraft = draft.exercises.length > 0;
+  const hasHistory = state.history.some(h=>h.date===date);
+  if(!hasDraft && !hasHistory) return false;
+
+  const label = isToday(date) ? '今日' : formatDateLabel(date);
+  if(!confirm(`${label}のメニューをすべて削除しますか？\n保存済みの記録も消えます。`)) return false;
+
+  state.draft = { date, exercises: [] };
+  state.history = state.history.filter(h=>h.date!==date);
+  state.expandedExIds = [];
+  await persist();
+  render();
+  return true;
+}
+
+function cloneExercisesForCopy(exercises){
+  const base = Date.now();
+  return exercises.map((ex,i)=>({
+    id: 'we_'+(base+i),
+    partId: ex.partId,
+    name: ex.name,
+    type: ex.type || 'weight',
+    videoUrl: ex.videoUrl || '',
+    done: false,
+    sets: (ex.sets || []).map(s=>({ weight: s.weight||'', reps: s.reps||'', done: !!s.done }))
+  }));
+}
+
+async function copyDayToToday(sourceDate){
+  const today = todayStr();
+  if(sourceDate === today) return false;
+
+  let sourceExercises = [];
+  if(getWorkDate() === sourceDate){
+    sourceExercises = ensureDraft().exercises;
+  } else {
+    sourceExercises = state.history.find(h=>h.date===sourceDate)?.exercises || [];
+  }
+  if(!sourceExercises.length) return false;
+
+  const todayHist = state.history.find(h=>h.date===today);
+  const todayDraft = state.draft?.date === today ? state.draft : null;
+  const hasToday = !!(todayHist?.exercises?.length || todayDraft?.exercises?.length);
+  if(hasToday){
+    const ok = confirm(`${formatDateLabel(sourceDate)} のメニューを今日にコピーしますか？\n今日の種目は置き換わります。`);
+    if(!ok) return false;
+  }
+
+  state.workDate = null;
+  state.draft = { date: today, exercises: cloneExercisesForCopy(sourceExercises) };
+  state.expandedExIds = [];
+  await persist();
+  state.screen = { name: 'home' };
+  render();
+  return true;
+}
+
+/* ---- Rule-based menu generation ---- */
+
+function parseISODate(ds){
+  const [y,m,d]=String(ds).split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
+function daysBetweenDates(a, b){
+  const ms = parseISODate(b) - parseISODate(a);
+  return Math.round(ms / 86400000);
+}
+
+function findPartIdForExercise(name){
+  const catalog = state.catalog || DEFAULT_CATALOG;
+  for(const id of PART_ORDER){
+    if((catalog[id]?.exercises || []).includes(name)) return id;
+  }
+  return null;
+}
+
+function getStrengthHistory(){
+  return (state.history || [])
+    .filter(h=>h.date && (h.exercises||[]).some(ex=>ex.type!=='video'))
+    .slice()
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function entryHasPart(entry, partId){
+  return (entry.exercises || []).some(ex=>{
+    if(ex.type === 'video') return false;
+    const pid = ex.partId || findPartIdForExercise(ex.name);
+    return pid === partId;
+  });
+}
+
+function lastTrainedDate(partId, beforeDate){
+  const hist = getStrengthHistory().filter(h=>h.date < beforeDate);
+  for(let i=hist.length-1; i>=0; i--){
+    if(entryHasPart(hist[i], partId)) return hist[i].date;
+  }
+  return null;
+}
+
+function selectPrimaryPart(today){
+  const rules = getMenuRules();
+  const scored = rules.primaryRotation.map(partId=>{
+    const last = lastTrainedDate(partId, today);
+    const rest = last == null ? 999 : daysBetweenDates(last, today);
+    const minRest = rules.minRestDaysByPart[partId] ?? 2;
+    return { partId, last, rest, recovered: rest >= minRest };
+  });
+  const recovered = scored.filter(s=>s.recovered);
+  const pool = recovered.length ? recovered : scored;
+  pool.sort((a,b)=>b.rest - a.rest || rules.primaryRotation.indexOf(a.partId) - rules.primaryRotation.indexOf(b.partId));
+  return pool[0] || { partId: rules.bootstrapPrimary, last: null, rest: 999, recovered: true };
+}
+
+function lastSessionForPart(partId, beforeDate){
+  const hist = getStrengthHistory().filter(h=>h.date < beforeDate);
+  for(let i=hist.length-1; i>=0; i--){
+    if(entryHasPart(hist[i], partId)) return hist[i];
+  }
+  return null;
+}
+
+function lastExerciseRecord(name, beforeDate){
+  const hist = getStrengthHistory().filter(h=>h.date < beforeDate);
+  for(let i=hist.length-1; i>=0; i--){
+    const ex = (hist[i].exercises || []).find(e=>e.name===name && e.type!=='video');
+    if(ex) return { date: hist[i].date, exercise: ex };
+  }
+  return null;
+}
+
+function pickExerciseNames(partId, count, today){
+  const catalog = state.catalog || DEFAULT_CATALOG;
+  const catalogNames = [...(catalog[partId]?.exercises || [])];
+  if(!catalogNames.length || count <= 0) return [];
+
+  const last = lastSessionForPart(partId, today);
+  const fromLast = last
+    ? (last.exercises || [])
+        .filter(ex=>ex.type!=='video' && (ex.partId===partId || findPartIdForExercise(ex.name)===partId))
+        .map(ex=>ex.name)
+        .filter((n,i,arr)=>arr.indexOf(n)===i)
+    : [];
+
+  const picked = [];
+  fromLast.forEach(n=>{ if(picked.length < count && catalogNames.includes(n)) picked.push(n); });
+  catalogNames.forEach(n=>{ if(picked.length < count && !picked.includes(n)) picked.push(n); });
+  return picked.slice(0, count);
+}
+
+function buildSetsForExercise(name, today){
+  const rules = getMenuRules();
+  const setCount = rules.defaultSetCount || DEFAULT_SET_COUNT;
+  const defaultReps = String(rules.defaultReps || 8);
+  const prev = lastExerciseRecord(name, today);
+  if(!prev){
+    return Array.from({length:setCount},()=>createEmptySet('', defaultReps));
+  }
+
+  const logged = (prev.exercise.sets || []).filter(isSetLogged);
+  if(!logged.length){
+    return Array.from({length:setCount},()=>createEmptySet('', defaultReps));
+  }
+
+  let bump = false;
+  if(rules.progression?.enabled){
+    const target = rules.progression.targetReps || 8;
+    bump = logged.every(s=>Number(s.reps) >= target) && logged.some(s=>Number(s.weight) > 0);
+  }
+  const inc = bump ? (rules.progression.incrementKg || 0) : 0;
+
+  const source = logged.slice(0, setCount);
+  while(source.length < setCount) source.push(source[source.length-1] || { weight:'', reps:defaultReps });
+
+  return source.map(s=>{
+    const w = Number(s.weight);
+    const nextW = Number.isFinite(w) && s.weight !== '' ? String(Math.round((w + inc) * 10) / 10) : (s.weight || '');
+    return createEmptySet(nextW, s.reps || defaultReps);
+  });
+}
+
+function countCardioThisWeek(today){
+  const d = parseISODate(today);
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  const mon = new Date(d); mon.setDate(d.getDate() - dow);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const monStr = dateStrFromDate(mon);
+  const sunStr = dateStrFromDate(sun);
+  return getStrengthHistory().filter(h=>{
+    if(h.date < monStr || h.date > sunStr || h.date >= today) return false;
+    return entryHasPart(h, getMenuRules().cardio.partId) ||
+      (h.exercises || []).some(ex=>{
+        const n = ex.name || '';
+        return n.includes('トレッドミル') || n.includes('ランニング') || n.includes('ウォーキング') || n.includes('エアロバイク');
+      });
+  }).length;
+}
+
+function shouldAddCardio(primaryPartId, today){
+  const c = getMenuRules().cardio;
+  if(!c?.enabled) return false;
+  if((c.skipWithPrimary || []).includes(primaryPartId)) return false;
+  return countCardioThisWeek(today) < (c.targetPerWeek || 2);
+}
+
+function makeGeneratedExercise(partId, name, sets){
+  return {
+    id: 'we_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    partId,
+    name,
+    type: 'weight',
+    videoUrl: '',
+    done: false,
+    sets
+  };
+}
+
+function generateTodayMenu(today = todayStr()){
+  const rules = getMenuRules();
+  const catalog = state.catalog || DEFAULT_CATALOG;
+  const primary = selectPrimaryPart(today);
+  const primaryId = primary.partId;
+  const primaryName = catalog[primaryId]?.name || primaryId;
+  const reasons = [];
+
+  if(primary.last == null){
+    reasons.push(`履歴が少ないため主部位は「${primaryName}」から開始`);
+  } else {
+    reasons.push(`「${primaryName}」は前回から${primary.rest}日経過（回復優先）`);
+  }
+
+  const exercises = [];
+  pickExerciseNames(primaryId, rules.exercisesPerPrimary, today).forEach(name=>{
+    exercises.push(makeGeneratedExercise(primaryId, name, buildSetsForExercise(name, today)));
+  });
+
+  const accessories = rules.pairings[primaryId] || [];
+  accessories.forEach(accId=>{
+    const accName = catalog[accId]?.name || accId;
+    const lastAcc = lastTrainedDate(accId, today);
+    const rest = lastAcc == null ? 999 : daysBetweenDates(lastAcc, today);
+    const minRest = rules.minRestDaysByPart[accId] ?? 1;
+    if(rest < minRest){
+      reasons.push(`補助「${accName}」は回復不足のためスキップ`);
+      return;
+    }
+    const names = pickExerciseNames(accId, rules.exercisesPerAccessory, today);
+    if(names.length){
+      reasons.push(`補助に「${accName}」を追加`);
+      names.forEach(name=>exercises.push(makeGeneratedExercise(accId, name, buildSetsForExercise(name, today))));
+    }
+  });
+
+  if(shouldAddCardio(primaryId, today)){
+    const cardioNames = catalog[rules.cardio.partId]?.exercises || ['有酸素（トレッドミル）'];
+    const cardioName = cardioNames[0];
+    exercises.push(makeGeneratedExercise(rules.cardio.partId, cardioName, [createEmptySet('', '')]));
+    reasons.push(`今週の有酸素が目標未達のため追加（週${rules.cardio.targetPerWeek}回目標）`);
+  }
+
+  if(rules.progression?.enabled){
+    reasons.push(`重量は前回値を引き継ぎ（全セット${rules.progression.targetReps}回以上なら +${rules.progression.incrementKg}kg）`);
+  }
+
+  return {
+    date: today,
+    primaryPartId: primaryId,
+    primaryName,
+    reason: reasons.join('\n'),
+    exercises
+  };
+}
+
+function hasTodayMenu(){
+  const today = todayStr();
+  const todayHist = state.history.find(h=>h.date===today);
+  const todayDraft = state.draft?.date === today ? state.draft : null;
+  return !!(todayHist?.exercises?.length || todayDraft?.exercises?.length);
+}
+
+async function applyGeneratedMenu(){
+  const plan = generateTodayMenu();
+  if(!plan.exercises.length){
+    alert('メニューを生成できませんでした。\n種目カタログに種目があるか確認してください。');
+    return false;
+  }
+
+  const lines = plan.exercises.map(ex=>`・${ex.name}`).join('\n');
+  const replaceNote = hasTodayMenu() ? '\n\n※今日の種目は置き換わります。' : '';
+  const ok = confirm(
+    `今日のメニュー（主部位: ${plan.primaryName}）\n\n${lines}\n\n【判断理由】\n${plan.reason}${replaceNote}\n\nこの内容で今日のメニューにしますか？`
+  );
+  if(!ok) return false;
+
+  const today = todayStr();
+  state.workDate = null;
+  state.draft = { date: today, exercises: plan.exercises };
+  state.expandedExIds = [];
+  await persist();
+  state.screen = { name: 'home' };
+  render();
+  return true;
+}
+
+function formatDateLabel(d){
+  if(isToday(d)) return '今日';
+  const [y,m,day]=d.split('-').map(Number);
+  return `${y}年${m}月${day}日`;
+}
+
+function formatDateWithWeekday(d){
+  const [y,m,day]=d.split('-').map(Number);
+  const wd=['日','月','火','水','木','金','土'][new Date(y,m-1,day).getDay()];
+  return `${y}年${m}月${day}日（${wd}）`;
+}
+
+function getHistoryDateBounds(){
+  const dates = state.history.map(h=>h.date).sort();
+  const today = todayStr();
+  if(!dates.length) return { min: today, max: today };
+  return { min: dates[0], max: dates[dates.length-1] > today ? dates[dates.length-1] : today };
+}
+
+function getMonthRange(offset=0){
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  const start = `${y}-${String(m+1).padStart(2,'0')}-01`;
+  const endDay = new Date(y, m+1, 0).getDate();
+  const end = `${y}-${String(m+1).padStart(2,'0')}-${String(endDay).padStart(2,'0')}`;
+  return { start, end };
+}
+
+function dateStrFromDate(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function getWeekRange(refDate=new Date()){
+  const d = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate());
+  const start = new Date(d);
+  start.setDate(d.getDate() - d.getDay());
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { start: dateStrFromDate(start), end: dateStrFromDate(end) };
+}
+
+function isTrainedDay(entry){
+  return !!(entry && entry.exercises && entry.exercises.length);
+}
+
+function calcSetVolume(set){
+  const w = parseFloat(set.weight);
+  const r = parseFloat(set.reps);
+  if(!Number.isFinite(w) || !Number.isFinite(r) || w <= 0 || r <= 0) return 0;
+  return w * r;
+}
+
+function calcDayVolume(entry){
+  if(!entry) return 0;
+  let vol = 0;
+  entry.exercises.forEach(ex=>{
+    if(ex.type === 'video') return;
+    (ex.sets || []).forEach(s=>{ vol += calcSetVolume(s); });
+  });
+  return vol;
+}
+
+function buildExportRows(startDate, endDate){
+  const rows = [];
+  state.history
+    .filter(h=>h.date>=startDate && h.date<=endDate)
+    .sort((a,b)=>a.date.localeCompare(b.date) || 0)
+    .forEach(h=>{
+      h.exercises.forEach(ex=>{
+        if(ex.type === 'video') return;
+        let setOrder=0;
+        (ex.sets || []).forEach(set=>{
+          if(!isSetLogged(set)) return;
+          setOrder++;
+          rows.push({
+            date: h.date,
+            exercise: ex.name,
+            set: setOrder,
+            weight: set.weight || 0,
+            reps: set.reps || 0,
+            notes: set.notes || ''
+          });
+        });
+      });
+    });
+  return rows;
+}
+
+function csvEscape(val){
+  const s = String(val ?? '');
+  if(/[",\n\r]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+  return s;
+}
+
+function buildWorkoutCsv(rows){
+  const lines = [['Date','Exercise','SetOrder','Weight_kg','Reps','Notes']];
+  rows.forEach(r=>lines.push([r.date, r.exercise, r.set, r.weight, r.reps, r.notes||'']));
+  return lines.map(cols=>cols.map(csvEscape).join(',')).join('\r\n');
+}
+
+function downloadCsv(csv, filename){
+  const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportWorkoutCsv(startDate, endDate){
+  const rows = buildExportRows(startDate, endDate);
+  if(!rows.length){
+    alert('指定期間にエクスポートできる記録がありません');
+    return false;
+  }
+  const csv = buildWorkoutCsv(rows);
+  downloadCsv(csv, `workout_${startDate}_${endDate}.csv`);
+  return true;
+}
+
+/* ---- Render ---- */
+function render(){
+  const app = document.getElementById('app');
+  // Destroy chart instances before re-render to avoid canvas reuse errors
+  Object.values(chartInst).forEach(c=>{try{c?.destroy();}catch(e){}});
+  Object.keys(chartInst).forEach(k=>delete chartInst[k]);
+  if(state.screen.name==='home') app.innerHTML = renderHome();
+  else if(state.screen.name==='history') app.innerHTML = renderHistory();
+  else if(state.screen.name==='calendar') app.innerHTML = renderCalendar();
+  else if(state.screen.name==='export') app.innerHTML = renderExport();
+  else if(state.screen.name==='addExercise') app.innerHTML = renderAddExercise();
+  else if(state.screen.name==='settings') app.innerHTML = renderSettings();
+  attachHandlers();
+  if(state.screen.name==='calendar') initDashboard();
+}
+
+function isExerciseExpanded(exId){
+  return state.expandedExIds.includes(exId);
+}
+
+function toggleExerciseExpand(exId){
+  if(isExerciseExpanded(exId)) state.expandedExIds = [];
+  else state.expandedExIds = [exId];
+}
+
+function collapseExercise(exId){
+  state.expandedExIds = state.expandedExIds.filter(id=>id!==exId);
+}
+
+function suppressCardCollapse(ms=400){
+  collapseSuppressUntil = Date.now() + ms;
+}
+
+function isCollapseSuppressed(){
+  return Date.now() < collapseSuppressUntil;
+}
+
+function keepExerciseExpanded(exId){
+  if(exId) state.expandedExIds = [exId];
+}
+
+function bindCardKeepOpen(el){
+  const suppress=()=>suppressCardCollapse();
+  el.addEventListener('mousedown', suppress);
+  el.addEventListener('touchstart', suppress, {passive:true});
+}
+
+function shouldIgnoreOutsideCollapse(target){
+  if(!target) return true;
+  if(target.closest('[data-toggle-expand]')) return true;
+  if(target.closest('.finish-bar, header.topbar, [data-action], .btn-collapse-card, .card-danger-zone, .day-danger-zone')) return true;
+  if(target.closest('.workout-card-body button, .workout-card-body input, .workout-card-body select')) return true;
+  return false;
+}
+
+function handleSetInputBlur(exId){
+  setTimeout(()=>{
+    if(isCollapseSuppressed()) return;
+    if(!isExerciseExpanded(exId)) return;
+    const card = document.querySelector(`[data-card="${exId}"]`);
+    const active = document.activeElement;
+    if(card && card.contains(active)) return;
+    collapseExercise(exId);
+    render();
+  }, 150);
+}
+
+function setupExpandOutsideClose(){
+  if(outsideCloseCleanup){
+    outsideCloseCleanup();
+    outsideCloseCleanup = null;
+  }
+  if(state.screen.name !== 'home' || !state.expandedExIds.length) return;
+
+  const exId = state.expandedExIds[0];
+  const onOutside = (e)=>{
+    if(!isExerciseExpanded(exId)) return;
+    const card = document.querySelector(`[data-card="${exId}"]`);
+    if(!card) return;
+    if(card.contains(e.target)) return;
+    if(shouldIgnoreOutsideCollapse(e.target)) return;
+    collapseExercise(exId);
+    render();
+  };
+  document.addEventListener('touchstart', onOutside, true);
+  document.addEventListener('mousedown', onOutside, true);
+  outsideCloseCleanup = ()=>{
+    document.removeEventListener('touchstart', onOutside, true);
+    document.removeEventListener('mousedown', onOutside, true);
+  };
+}
+
+function renderExerciseSummary(ex){
+  if(ex.type === 'video') return ex.done ? '動画視聴完了' : 'YouTubeサーキット';
+  const sets = ex.sets || [];
+  const doneCount = sets.filter(s=>s.done).length;
+  const logged = sets.filter(isSetLogged);
+  if(!logged.length) return `${sets.length}セット · 未入力`;
+  const preview = logged.slice(0,2).map(s=>`${s.weight||'-'}kg×${s.reps||'-'}`).join(', ');
+  const rest = logged.length > 2 ? ` 他${logged.length-2}セット` : '';
+  const doneLabel = doneCount ? ` · ${doneCount}/${sets.length}完了` : '';
+  return preview + rest + doneLabel;
+}
+
+function renderSetLine(exId, set, i, setCount){
+  const logged = isSetLogged(set);
+  const done = !!set.done;
+  const n = i + 1;
+  return `
+    <div class="set-line ${logged?'is-logged':''} ${done?'is-done':''}">
+      <div class="set-line-top">
+        <button type="button" class="set-done-toggle" data-set-done data-ex-id="${exId}" data-set-idx="${i}" aria-label="セット${n}を完了">${done?'✓':''}</button>
+        <span class="set-line-label">セット${n}</span>
+        ${setCount > 1 ? `<button type="button" class="set-remove-link" data-set-remove data-ex-id="${exId}" data-set-idx="${i}">削除</button>` : ''}
+      </div>
+      <div class="set-line-inputs">
+        <input type="number" inputmode="decimal" placeholder="kg" aria-label="セット${n} 重量"
+          data-set-weight data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.weight)}">
+        <input type="number" inputmode="numeric" placeholder="回" aria-label="セット${n} 回数"
+          data-set-reps data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.reps)}">
+        ${i>0 ? `<button type="button" class="set-copy" data-set-copy data-ex-id="${exId}" data-set-idx="${i}" aria-label="前セットをコピー" title="前セットをコピー">↳</button>` : '<span style="width:40px;flex-shrink:0"></span>'}
+      </div>
+    </div>`;
+}
+
+function renderWorkoutCard(ex){
+  const part = getPart(ex.partId);
+  const done = !!ex.done;
+  const expanded = isExerciseExpanded(ex.id);
+  const isVideo = ex.type === 'video';
+
+  let bodyContent = '';
+  if(isVideo){
+    const embed = youtubeEmbedUrl(ex.videoUrl);
+    bodyContent = embed
+      ? `<div class="video-embed-wrap"><iframe src="${esc(embed)}" allowfullscreen loading="lazy"></iframe></div>`
+      : `<div class="video-note">YouTube URLが未設定です。<br>種目を追加し直すか、URL付きサーキットを選んでください。</div>`;
+  } else {
+    const sets = ex.sets || [];
+    const setLines = sets.map((s,i)=>renderSetLine(ex.id,s,i,sets.length)).join('');
+    const canAdd = sets.length < 10;
+    bodyContent = `
+      ${setLines}
+      <div class="set-actions-zone">
+        <button type="button" class="btn-add-set-card" data-add-set="${ex.id}" ${canAdd?'':'disabled'}>＋ セット追加</button>
+      </div>
+      <div class="card-safe-actions">
+        <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>
+      </div>
+      <div class="card-danger-zone">
+        <div class="danger-zone-label">削除操作</div>
+        <button type="button" class="btn-delete-ex-card" data-delete-ex="${ex.id}">この種目を削除</button>
+      </div>`;
+  }
+
+  const partLabel = isVideo ? 'YouTube' : (part?.name || '');
+  const partColor = isVideo ? '#FF4444' : (part?.color || 'var(--muted)');
+
+  return `
+    <div class="workout-card ${done?'is-done':''} ${expanded?'is-expanded':''}" data-card="${ex.id}">
+      <div class="workout-card-head">
+        <button type="button" class="workout-card-toggle" data-toggle-expand="${ex.id}" aria-expanded="${expanded}" aria-label="${esc(ex.name)}を${expanded?'閉じる':'開く'}">
+          <div class="workout-card-main">
+            <div class="workout-card-name">${esc(ex.name)}</div>
+            <div class="workout-card-part" style="color:${partColor}">${esc(partLabel)}</div>
+            <div class="workout-card-summary">${esc(renderExerciseSummary(ex))}</div>
+            ${!expanded ? '<div class="card-tap-hint">タップで入力 ›</div>' : ''}
+          </div>
+          <span class="card-chevron" aria-hidden="true">›</span>
+        </button>
+        <div class="card-head-actions">
+          <button type="button" class="card-done-toggle" data-toggle-done="${ex.id}" aria-label="${done?'完了を取り消す':'種目を完了にする'}">${done?'✓':''}</button>
+          <button type="button" class="card-delete" data-delete-ex="${ex.id}" aria-label="種目を削除">×</button>
+        </div>
+      </div>
+      <div class="workout-card-body">
+        ${bodyContent}
+        ${isVideo ? `
+          <div class="card-safe-actions">
+            <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>
+          </div>
+          <div class="card-danger-zone">
+            <div class="danger-zone-label">削除操作</div>
+            <button type="button" class="btn-delete-ex-card" data-delete-ex="${ex.id}">この種目を削除</button>
+          </div>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderStatusBar(draft){
+  const status = getWorkoutStatus(draft);
+  if(status === 'empty') return '';
+  const doneCount = draft.exercises.filter(e=>e.done).length;
+  const total = draft.exercises.length;
+  if(status === 'after'){
+    return `
+      <div class="status-bar">
+        <span class="status-label after">✓ トレーニング完了</span>
+        <span class="status-count">${doneCount}/${total} 種目</span>
+      </div>`;
+  }
+  return `
+    <div class="status-bar">
+      <span class="status-label before">● 記録中（やる前）</span>
+      <span class="status-count">${doneCount}/${total} 種目完了</span>
+    </div>`;
+}
+
+function renderAddExercise(){
+  const addType = state.screen.addType || 'weight';
+  const partId = state.screen.addPartId || PART_ORDER[0];
+  const circuitId = state.screen.addCircuitId || state.circuits[0]?.id || '';
+  const part = getPart(partId);
+  const exOptions = part ? part.exercises.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('') : '';
+  const partOptions = getPartList().map(p=>`<option value="${p.id}" ${p.id===partId?'selected':''}>${esc(p.name)}</option>`).join('');
+  const circuitOptions = state.circuits.map(c=>`<option value="${c.id}" ${c.id===circuitId?'selected':''}>${esc(c.name)}</option>`).join('');
+  const selectedCircuit = getCircuit(circuitId);
+  const videoUrl = state.screen.addVideoUrl ?? selectedCircuit?.url ?? '';
+
+  const weightFields = `
+    <label>① 部位を選択</label>
+    <select data-add-part>${partOptions}</select>
+    <label>② 登録済み種目から選ぶ</label>
+    <select data-add-exercise>${exOptions}</select>
+    <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;height:1px;background:var(--line)"></div><span style="font-size:11px;color:var(--muted)">または</span><div style="flex:1;height:1px;background:var(--line)"></div></div>
+    <label>② 新しい種目を登録して追加</label>
+    <div style="display:flex;gap:8px;margin-bottom:4px;">
+      <input id="new-exercise-input" type="text" placeholder="種目名を入力" style="flex:1;padding:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-family:inherit;">
+      <button class="btn btn-primary" data-action="register-and-add" style="white-space:nowrap;padding:0 16px">登録して追加</button>
+    </div>`;
+
+  const videoFields = `
+    <label>YouTubeサーキットを選択</label>
+    <select data-add-circuit>${circuitOptions}</select>
+    <label>YouTube URL（任意）</label>
+    <input type="url" data-add-video-url placeholder="https://www.youtube.com/watch?v=..." value="${esc(videoUrl)}" style="width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px;color:var(--text);font-size:15px;font-family:inherit;margin-bottom:16px;">`;
+
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back-home" aria-label="戻る">‹</button>
+      <div class="page-title sub">種目を登録</div>
+      <div style="width:44px"></div>
+    </header>
+    <main>
+      <div class="add-panel" style="margin-bottom:0;">
+        <div class="add-type-tabs">
+          <button type="button" class="add-type-tab ${addType==='weight'?'is-active':''}" data-set-add-type="weight">筋トレ種目</button>
+          <button type="button" class="add-type-tab ${addType==='video'?'is-active':''}" data-set-add-type="video">YouTubeサーキット</button>
+        </div>
+        ${addType==='weight' ? weightFields : videoFields}
+        <button class="btn btn-primary" data-action="confirm-add">追加する</button>
+      </div>
+    </main>`;
+}
+
+function renderHome(){
+  const draft = ensureDraft();
+  const date = getWorkDate();
+  const cards = draft.exercises.map(renderWorkoutCard).join('');
+  const statusBar = renderStatusBar(draft);
+  const saveLabel = '完了して戻る';
+  const canCopyToToday = !isToday(date) && draft.exercises.length;
+  const dateLabel = formatDateWithWeekday(date);
+
+  const canResetDay = draft.exercises.length || state.history.some(h=>h.date===date);
+
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back-calendar" aria-label="筋トレログに戻る">‹</button>
+      <div>
+        <div class="page-title">${isToday(date) ? '今日のトレーニング' : formatDateLabel(date)}</div>
+        <div class="page-sub">${dateLabel}</div>
+      </div>
+      <div style="width:44px"></div>
+    </header>
+    <main>
+      ${statusBar}
+      ${draft.exercises.length ? '<div class="save-hint">入力内容は自動保存されます</div>' : ''}
+      ${cards || '<div class="empty-state"><div class="big">🏋️</div>種目を登録して<br>トレーニングを記録しましょう</div>'}
+      ${canResetDay ? `
+        <div class="day-danger-zone">
+          <div class="danger-zone-label">この日の記録をすべて削除</div>
+          <button type="button" class="btn-reset-day" data-action="reset-day">この日のメニューをリセット</button>
+        </div>` : ''}
+    </main>
+    <div class="finish-bar">
+      ${canCopyToToday ? '<button class="btn-copy-ex" data-action="copy-to-today">📋 本日にコピー</button>' : ''}
+      <button class="btn-add-ex" data-action="go-add">＋ 種目を登録</button>
+      <button class="btn btn-primary" data-action="save-workout" ${!draft.exercises.length?'disabled':''}>${saveLabel}</button>
+    </div>`;
+}
+
+function renderHistory(){
+  const today = todayStr();
+  const items = [...state.history].reverse().map(h=>{
+    const exLines = h.exercises.map(ex=>{
+      if(ex.type === 'video'){
+        return `<div class="hist-ex-row"><span class="hist-ex-name">${esc(ex.name)}</span><span class="hist-ex-stats">${ex.done?'視聴完了':'未視聴'}</span></div>`;
+      }
+      const logged = (ex.sets || []).filter(s=>s.weight||s.reps);
+      const stats = logged.length
+        ? logged.map(s=>`${s.weight||'-'}kg×${s.reps||'-'}`).join(' / ')
+        : '未記録';
+      return `<div class="hist-ex-row"><span class="hist-ex-name">${esc(ex.name)}</span><span class="hist-ex-stats">${esc(stats)}</span></div>`;
+    }).join('');
+    const canCopy = h.date !== today && h.exercises.length;
+    return `<div class="hist-item">
+      <div class="hist-head">
+        <div class="hist-date">${h.date}</div>
+        ${canCopy ? `<button type="button" class="hist-copy" data-copy-to-today="${h.date}">本日にコピー</button>` : ''}
+      </div>
+      ${exLines||'<div class="hist-ex-stats">記録なし</div>'}
+    </div>`;
+  }).join('');
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back-settings" aria-label="設定に戻る">‹</button>
+      <div class="page-title sub">履歴</div>
+      <div style="width:44px"></div>
+    </header>
+    <main>${items||'<div class="empty-state"><div class="big">📋</div>まだ履歴がありません</div>'}</main>`;
+}
+
+function renderExport(){
+  const bounds = getHistoryDateBounds();
+  const exportStart = state.screen.exportStart || bounds.min;
+  const exportEnd = state.screen.exportEnd || bounds.max;
+  const rowCount = buildExportRows(exportStart, exportEnd).length;
+
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back-settings" aria-label="設定に戻る">‹</button>
+      <div class="page-title sub">CSVダウンロード</div>
+      <div style="width:44px"></div>
+    </header>
+    <main>
+      <div class="export-panel">
+        <div class="export-row">
+          <div class="export-field">
+            <label for="export-start">開始日</label>
+            <input id="export-start" type="date" data-export-start value="${exportStart}" min="${bounds.min}" max="${bounds.max}">
+          </div>
+          <div class="export-field">
+            <label for="export-end">終了日</label>
+            <input id="export-end" type="date" data-export-end value="${exportEnd}" min="${bounds.min}" max="${bounds.max}">
+          </div>
+        </div>
+        <div class="export-presets">
+          <button type="button" class="export-preset" data-export-preset="this-month">今月</button>
+          <button type="button" class="export-preset" data-export-preset="last-month">先月</button>
+          <button type="button" class="export-preset" data-export-preset="all">全期間</button>
+        </div>
+        <div class="export-meta">${rowCount}件のセット記録が対象です<br>Date / Exercise / SetOrder / Weight_kg / Reps / Notes 形式で出力します</div>
+        <button class="btn btn-primary" data-action="download-csv">CSVをダウンロード</button>
+      </div>
+    </main>`;
+}
+
+function getBig3Class(entry){
+  if(!isTrainedDay(entry)) return '';
+  const names=(entry.exercises||[]).map(e=>e.name||'');
+  const cat=state.catalog||DEFAULT_CATALOG;
+  let hasChest=false,hasBack=false,hasLegs=false,hasCardio=false;
+  for(const name of names){
+    if((cat.chest?.exercises||[]).includes(name)) hasChest=true;
+    if((cat.back?.exercises||[]).includes(name)) hasBack=true;
+    if((cat.legs?.exercises||[]).includes(name)) hasLegs=true;
+    if((cat.cardio?.exercises||[]).includes(name)) hasCardio=true;
+    if(name.includes('ベンチ')||name.includes('チェスト')||name.includes('フライ')||name.includes('ペック')) hasChest=true;
+    if(name.includes('デッドリフト')||name.includes('ロー')||name.includes('プルダウン')||name.includes('チンニング')||name.includes('シュラッグ')) hasBack=true;
+    if(name.includes('スクワット')||name.includes('レッグ')||name.includes('ランジ')||name.includes('ヒップ')) hasLegs=true;
+    if(name.includes('トレッドミル')||name.includes('ランニング')||name.includes('ウォーキング')||name.includes('エアロバイク')) hasCardio=true;
+  }
+  if(hasChest) return 'big3-bench';
+  if(hasBack) return 'big3-dead';
+  if(hasLegs) return 'big3-squat';
+  if(hasCardio) return 'big3-cardio';
+  return '';
+}
+
+function getBig3ClassForDate(ds, entry){
+  const allRows=ACTIVE_DATA.filter(d=>d.date===ds);
+  const strengthRows=allRows.filter(d=>d.exercise!==CARDIO);
+  if(strengthRows.length>0){
+    const names=strengthRows.map(d=>d.exercise);
+    const isChest=n=>n.includes('ベンチ')||n.includes('チェスト')||n.includes('フライ')||n.includes('ペック')||n.includes('インクライン')||n.includes('スーパーフライ')||n.includes('アイソラテラル');
+    const isBack=n=>n.includes('デッドリフト')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('シュラッグ')||n.includes('プルオーバー');
+    const isLegs=n=>n.includes('スクワット')||n.includes('レッグ')||n.includes('ランジ')||n.includes('ヒップ')||n.includes('ハック');
+    if(names.some(isChest)) return 'big3-bench';
+    if(names.some(isBack)) return 'big3-dead';
+    if(names.some(isLegs)) return 'big3-squat';
+  }
+  if(allRows.some(d=>d.exercise===CARDIO)) return 'big3-cardio';
+  return getBig3Class(entry);
+}
+
+function renderCalendar(){
+  const {year,month}=state.screen;
+  const first=new Date(year,month,1);
+  const startWd=first.getDay();
+  const dim=new Date(year,month+1,0).getDate();
+  const todayS=todayStr();
+  const byDate={};
+  state.history.forEach(h=>{ byDate[h.date]=h; });
+  const cells=[];
+  for(let i=0;i<startWd;i++) cells.push('<div class="cal-cell empty"></div>');
+  for(let d=1;d<=dim;d++){
+    const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const big3=getBig3ClassForDate(ds, byDate[ds]);
+    const hasCardio=ACTIVE_DATA.some(r=>r.date===ds&&r.exercise===CARDIO)||
+      (byDate[ds]?.exercises||[]).some(e=>(e.name||'').includes('トレッドミル')||(e.name||'').includes('ランニング')||(e.name||'').includes('ウォーキング')||(e.name||'').includes('エアロバイク'));
+    const star=hasCardio?'<span class="cal-cardio-star">★</span>':'';
+    cells.push(`<div class="cal-cell ${big3} ${ds===todayS?'today':''}" data-cal-date="${ds}">${star}${d}</div>`);
+  }
+  return `
+    <header class="topbar">
+      <div class="page-title">筋トレログ｜YU Edition v1.0.0</div>
+      <button class="icon-btn" data-action="settings" aria-label="設定">⚙</button>
+    </header>
+    <main class="home-main">
+      <div class="cal-section">
+        <div class="cal-nav">
+          <button data-cal-nav="-1" aria-label="前の月">‹</button>
+          <div class="cal-nav-label">${year}年${month+1}月</div>
+          <button data-cal-nav="1" aria-label="次の月">›</button>
+        </div>
+        <div class="cal-legend">
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#FF6B6B"></div>胸</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#4FA8FF"></div>背中</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#35D48A"></div>脚</div>
+          <div class="cal-legend-item"><span style="color:#fff;text-shadow:0 0 3px rgba(167,139,250,0.9);font-size:10px">★</span>有酸素</div>
+        </div>
+        <div class="cal-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+        <div class="cal-grid">${cells.join('')}</div>
+      </div>
+      <div class="home-cta">
+        <button type="button" class="btn-today-workout" data-action="go-today-edit">今日のトレーニング</button>
+        <button type="button" class="btn-generate-menu" data-action="generate-today-menu">今日のメニューを生成</button>
+      </div>
+      <div class="cal-hint">日付をタップして過去日も編集できます</div>
+      <div class="sec-label" style="margin-top:18px">進捗・目標</div>
+      <div id="goals"></div>
+    </main>`;
+}
+
+function renderSettings(){
+  const rulesText = getMenuRulesText();
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back-calendar" aria-label="戻る">‹</button>
+      <div class="page-title sub">設定</div>
+      <div style="width:44px"></div>
+    </header>
+    <main class="settings-main">
+      <div class="settings-block">
+        <h2>メニュー生成ルール</h2>
+        <p class="settings-desc">他の生成AIで作ったルール文を、そのまま貼り付けて保存してください。「今日のメニューを生成」に反映されます。</p>
+        <div class="settings-field">
+          <label>ルール文</label>
+          <textarea id="rule-text" placeholder="例）胸・背中・脚を回復優先で回す。主部位3種目…">${esc(rulesText)}</textarea>
+        </div>
+        <div class="settings-actions">
+          <button type="button" class="btn btn-primary" data-action="save-menu-rules">ルールを保存</button>
+          <button type="button" class="btn btn-ghost" data-action="reset-menu-rules" style="margin-top:0">初期ルールに戻す</button>
+        </div>
+      </div>
+
+      <div class="settings-block">
+        <h2>データ</h2>
+        <p class="settings-desc">履歴の確認や CSV の入出力はここにまとめています。</p>
+        <div class="settings-actions">
+          <button type="button" class="settings-link-btn" data-action="history">履歴を見る <span>›</span></button>
+          <button type="button" class="settings-link-btn" id="csv-import-btn">CSVを取り込む <span>›</span></button>
+          <button type="button" class="settings-link-btn" data-action="export">CSVを書き出す <span>›</span></button>
+          <input type="file" id="csv-file-input" accept=".csv" style="display:none">
+          <button type="button" class="settings-danger" id="csv-reset-btn">すべての記録を削除</button>
+        </div>
+      </div>
+    </main>`;
+}
+
+function attachHandlers(){
+  const app=document.getElementById('app');
+
+  app.querySelector('#csv-file-input')?.addEventListener('change',e=>{
+    const file=e.target.files[0];
+    if(file)importCSV(file);
+    e.target.value='';
+  });
+  app.querySelector('#csv-import-btn')?.addEventListener('click',()=>{
+    alert(`📋 CSV引き継ぎ\n\nこのアプリのエクスポート形式:\nDate,Exercise,SetOrder,Weight_kg,Reps,Notes\n\n例:\n2026-08-04,ベンチプレス,1,60,8,\n2026-08-04,ベンチプレス,2,62.5,6,PR更新\n\n・日付は YYYY-MM-DD または 2026/8/4\n・日本語ヘッダー（日付,種目,セット,重量,回数,メモ）も可\n・UTF-8 / Shift-JIS 両対応\n・取り込み後はカレンダー履歴にも反映されます\n\n─────────────────\nOK を押してファイルを選択`);
+    document.getElementById('csv-file-input').click();
+  });
+  app.querySelector('#csv-reset-btn')?.addEventListener('click',async()=>{
+    if(!confirm('これまでの記録をすべて削除しますか？\n（履歴・CSV取込・今日の下書き）\nこの操作は元に戻せません。')) return;
+    try{localStorage.removeItem('csv_import_v1');}catch(e){}
+    ACTIVE_DATA=[];
+    state.history=[];
+    state.draft=null;
+    state.workDate=null;
+    state.expandedExIds=[];
+    await persist();
+    render();
+  });
+  app.querySelector('[data-action="back-calendar"]')?.addEventListener('click',async()=>{ await persist(); openCalendarScreen(); render(); });
+  app.querySelector('[data-action="back-settings"]')?.addEventListener('click',()=>{ state.screen={name:'settings'}; render(); });
+  app.querySelector('[data-action="back-home"]')?.addEventListener('click',()=>{ state.screen={name:'home'}; render(); });
+  app.querySelector('[data-action="settings"]')?.addEventListener('click',()=>{ state.screen={name:'settings'}; render(); });
+  app.querySelector('[data-action="history"]')?.addEventListener('click',()=>{ state.screen={name:'history'}; render(); });
+  app.querySelector('[data-action="export"]')?.addEventListener('click',()=>{
+    const bounds = getHistoryDateBounds();
+    state.screen={ name:'export', exportStart:bounds.min, exportEnd:bounds.max };
+    render();
+  });
+  app.querySelector('[data-action="save-menu-rules"]')?.addEventListener('click',async()=>{
+    const text = document.getElementById('rule-text')?.value || '';
+    if(!text.trim()){ alert('ルール文を入力してください'); return; }
+    await saveMenuRulesFromText(text);
+    alert('メニュー生成ルールを保存しました');
+    render();
+  });
+  app.querySelector('[data-action="reset-menu-rules"]')?.addEventListener('click',async()=>{
+    if(!confirm('メニュー生成ルールを初期文に戻しますか？')) return;
+    await saveMenuRulesFromText(DEFAULT_MENU_RULES_TEXT);
+    render();
+  });
+  app.querySelector('[data-action="download-csv"]')?.addEventListener('click',()=>{
+    const start = app.querySelector('[data-export-start]')?.value;
+    const end = app.querySelector('[data-export-end]')?.value;
+    if(!start || !end){ alert('期間を指定してください'); return; }
+    if(start > end){ alert('開始日は終了日以前にしてください'); return; }
+    exportWorkoutCsv(start, end);
+  });
+  app.querySelector('[data-export-start]')?.addEventListener('change',e=>{
+    state.screen.exportStart = e.target.value;
+    render();
+  });
+  app.querySelector('[data-export-end]')?.addEventListener('change',e=>{
+    state.screen.exportEnd = e.target.value;
+    render();
+  });
+  app.querySelectorAll('[data-export-preset]').forEach(el=>{
+    el.onclick=()=>{
+      const bounds = getHistoryDateBounds();
+      const preset = el.getAttribute('data-export-preset');
+      if(preset === 'this-month'){
+        const r = getMonthRange(0);
+        state.screen.exportStart = r.start < bounds.min ? bounds.min : r.start;
+        state.screen.exportEnd = r.end > bounds.max ? bounds.max : r.end;
+      } else if(preset === 'last-month'){
+        const r = getMonthRange(-1);
+        state.screen.exportStart = r.start < bounds.min ? bounds.min : r.start;
+        state.screen.exportEnd = r.end > bounds.max ? bounds.max : r.end;
+      } else {
+        state.screen.exportStart = bounds.min;
+        state.screen.exportEnd = bounds.max;
+      }
+      render();
+    };
+  });
+  app.querySelector('[data-action="go-today-edit"]')?.addEventListener('click',()=>{ openEditDate(todayStr()); });
+  app.querySelector('[data-action="generate-today-menu"]')?.addEventListener('click',async()=>{
+    await applyGeneratedMenu();
+  });
+  app.querySelector('[data-action="go-add"]')?.addEventListener('click',()=>{
+    state.screen={
+      name:'addExercise',
+      addType:'weight',
+      addPartId:PART_ORDER[0],
+      addCircuitId:state.circuits[0]?.id || '',
+      addVideoUrl:''
+    };
+    render();
+  });
+  app.querySelector('[data-action="copy-to-today"]')?.addEventListener('click',async()=>{
+    const ok = await copyDayToToday(getWorkDate());
+    if(!ok) alert('本日にコピーできるメニューがありません');
+  });
+  app.querySelectorAll('[data-copy-to-today]').forEach(el=>{
+    el.onclick=async()=>{
+      const ok = await copyDayToToday(el.getAttribute('data-copy-to-today'));
+      if(!ok) alert('本日にコピーできるメニューがありません');
+    };
+  });
+  app.querySelectorAll('[data-set-add-type]').forEach(el=>{
+    el.onclick=()=>{
+      const addType = el.getAttribute('data-set-add-type');
+      state.screen.addType = addType;
+      if(addType === 'video'){
+        state.screen.addCircuitId = state.screen.addCircuitId || state.circuits[0]?.id || '';
+        state.screen.addVideoUrl = getCircuit(state.screen.addCircuitId)?.url || '';
+      }
+      render();
+    };
+  });
+  app.querySelector('[data-action="register-and-add"]')?.addEventListener('click',async()=>{
+    const partId=app.querySelector('[data-add-part]')?.value;
+    const name=(app.querySelector('#new-exercise-input')?.value||'').trim();
+    if(!partId||!name){alert('部位と種目名を入力してください');return;}
+    if(!state.catalog[partId]) state.catalog[partId]={...DEFAULT_CATALOG[partId]||{name:partId,color:'#888',exercises:[]}};
+    if(!state.catalog[partId].exercises.includes(name)) state.catalog[partId].exercises.push(name);
+    const newId=addExerciseToDraft({partId,name,type:'weight'});
+    state.expandedExIds=[newId];
+    state.screen={name:'home'};
+    await persist();
+    render();
+  });
+  app.querySelector('[data-add-part]')?.addEventListener('change',e=>{
+    state.screen.addPartId=e.target.value; render();
+  });
+  app.querySelector('[data-add-circuit]')?.addEventListener('change',e=>{
+    state.screen.addCircuitId=e.target.value;
+    state.screen.addVideoUrl = getCircuit(e.target.value)?.url || '';
+    render();
+  });
+  app.querySelector('[data-add-video-url]')?.addEventListener('input',e=>{
+    state.screen.addVideoUrl = e.target.value;
+  });
+  app.querySelector('[data-action="confirm-add"]')?.addEventListener('click',async()=>{
+    const addType = state.screen.addType || 'weight';
+    let newId;
+    if(addType === 'video'){
+      const circuitId = app.querySelector('[data-add-circuit]')?.value;
+      const circuit = getCircuit(circuitId);
+      const videoUrl = app.querySelector('[data-add-video-url]')?.value?.trim() || circuit?.url || '';
+      if(!circuit){ alert('サーキットを選択してください'); return; }
+      newId = addExerciseToDraft({
+        partId:'video',
+        name:circuit.name,
+        type:'video',
+        videoUrl
+      });
+    } else {
+      const partId=app.querySelector('[data-add-part]')?.value;
+      const exName=app.querySelector('[data-add-exercise]')?.value;
+      if(!partId||!exName) return;
+      newId = addExerciseToDraft({ partId, name:exName, type:'weight' });
+    }
+    state.expandedExIds=[newId];
+    state.screen={name:'home'};
+    await persist();
+    render();
+  });
+
+  app.querySelectorAll('[data-toggle-expand]').forEach(el=>{
+    el.onclick=()=>{
+      toggleExerciseExpand(el.getAttribute('data-toggle-expand'));
+      render();
+    };
+  });
+
+  app.querySelectorAll('[data-collapse-ex]').forEach(el=>{
+    el.onclick=()=>{
+      collapseExercise(el.getAttribute('data-collapse-ex'));
+      render();
+    };
+  });
+
+  app.querySelectorAll('.workout-card.is-expanded .workout-card-body').forEach(body=>{
+    body.addEventListener('focusout',()=>{
+      const exId = body.closest('[data-card]')?.getAttribute('data-card');
+      if(exId) handleSetInputBlur(exId);
+    });
+  });
+
+  setupExpandOutsideClose();
+
+  app.querySelectorAll('[data-toggle-done]').forEach(el=>{
+    el.onclick=async()=>{
+      const draft=ensureDraft();
+      const exId=el.getAttribute('data-toggle-done');
+      const ex=draft.exercises.find(e=>e.id===exId);
+      if(ex){
+        ex.done=!ex.done;
+        if(ex.done) collapseExercise(exId);
+        await persist(); render();
+      }
+    };
+  });
+
+  app.querySelector('[data-action="reset-day"]')?.addEventListener('click',()=>{ resetDayWorkout(); });
+
+  app.querySelectorAll('[data-delete-ex]').forEach(el=>{
+    el.onclick=async()=>{
+      const exId=el.getAttribute('data-delete-ex');
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===exId);
+      if(!ex) return;
+      if(!confirm(`「${ex.name}」を削除しますか？`)) return;
+      removeExerciseFromDraft(exId);
+      state.expandedExIds=state.expandedExIds.filter(id=>id!==exId);
+      await persist(); render();
+    };
+  });
+
+  app.querySelectorAll('[data-add-set]').forEach(el=>{
+    bindCardKeepOpen(el);
+    el.onclick=async()=>{
+      const exId=el.getAttribute('data-add-set');
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===exId);
+      if(!ex||ex.type==='video'||!ex.sets||ex.sets.length>=10) return;
+      const prev=ex.sets[ex.sets.length-1];
+      ex.sets.push(createEmptySet(prev?.weight,prev?.reps));
+      keepExerciseExpanded(exId);
+      suppressCardCollapse();
+      await persist(); render();
+    };
+  });
+
+  app.querySelectorAll('[data-set-weight]').forEach(el=>{
+    el.oninput=async()=>{
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===el.getAttribute('data-ex-id'));
+      if(ex) ex.sets[+el.getAttribute('data-set-idx')].weight=el.value;
+      await persist();
+    };
+    el.onblur=()=>handleSetInputBlur(el.getAttribute('data-ex-id'));
+  });
+  app.querySelectorAll('[data-set-reps]').forEach(el=>{
+    el.oninput=async()=>{
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===el.getAttribute('data-ex-id'));
+      if(ex) ex.sets[+el.getAttribute('data-set-idx')].reps=el.value;
+      await persist();
+    };
+    el.onblur=()=>handleSetInputBlur(el.getAttribute('data-ex-id'));
+  });
+
+  app.querySelectorAll('[data-set-copy]').forEach(el=>{
+    bindCardKeepOpen(el);
+    el.onclick=async()=>{
+      const exId=el.getAttribute('data-ex-id');
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===exId);
+      const idx=+el.getAttribute('data-set-idx');
+      if(ex&&idx>0){
+        ex.sets[idx].weight=ex.sets[idx-1].weight;
+        ex.sets[idx].reps=ex.sets[idx-1].reps;
+        ex.sets[idx].done=ex.sets[idx-1].done;
+        keepExerciseExpanded(exId);
+        suppressCardCollapse();
+        await persist(); render();
+      }
+    };
+  });
+
+  app.querySelectorAll('[data-set-done]').forEach(el=>{
+    bindCardKeepOpen(el);
+    el.onclick=async()=>{
+      const exId=el.getAttribute('data-ex-id');
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===exId);
+      const idx=+el.getAttribute('data-set-idx');
+      if(!ex) return;
+      ex.sets[idx].done=!ex.sets[idx].done;
+      keepExerciseExpanded(exId);
+      suppressCardCollapse();
+      await persist(); render();
+    };
+  });
+
+  app.querySelectorAll('[data-set-remove]').forEach(el=>{
+    bindCardKeepOpen(el);
+    el.onclick=async()=>{
+      const exId=el.getAttribute('data-ex-id');
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===exId);
+      const idx=+el.getAttribute('data-set-idx');
+      if(!ex || ex.sets.length <= 1) return;
+      if(!confirm(`セット${idx+1}を削除しますか？`)) return;
+      ex.sets.splice(idx,1);
+      keepExerciseExpanded(exId);
+      suppressCardCollapse();
+      await persist(); render();
+    };
+  });
+
+  app.querySelector('[data-action="save-workout"]')?.addEventListener('click',saveWorkout);
+
+  app.querySelectorAll('[data-cal-nav]').forEach(el=>{
+    el.onclick=()=>{
+      let {year,month}=state.screen;
+      month+=+el.getAttribute('data-cal-nav');
+      if(month<0){month=11;year--;} if(month>11){month=0;year++;}
+      state.screen.year=year; state.screen.month=month;
+      render();
+    };
+  });
+  app.querySelectorAll('[data-cal-date]').forEach(el=>{
+    el.onclick=()=>{ openEditDate(el.getAttribute('data-cal-date')); };
+  });
+}
+
+async function saveWorkout(){
+  const draft=ensureDraft();
+  if(!draft.exercises.length){ alert('種目を追加してください'); return; }
+  syncDraftToHistory();
+  state.draft=JSON.parse(JSON.stringify(draft));
+  state.workDate=null;
+  state.expandedExIds=[];
+  await persist();
+  openCalendarScreen();
+  render();
+}
+
+function syncDraftToHistory(){
+  const draft = state.draft;
+  if(!draft?.date || !draft.exercises?.length) return;
+  const entry = JSON.parse(JSON.stringify(draft));
+  const idx = state.history.findIndex(h=>h.date===draft.date);
+  if(idx>=0) state.history[idx]=entry;
+  else state.history.push(entry);
+}
+
+async function persist(){
+  syncDraftToHistory();
+  await save(STORAGE.catalog,state.catalog);
+  await save(STORAGE.circuits,state.circuits);
+  await save(STORAGE.history,state.history);
+  await save(STORAGE.draft,state.draft);
+  await save(STORAGE.workDate,state.workDate);
+}
+
+async function init(){
+  document.getElementById('app').innerHTML='<div class="empty-state">読み込み中…</div>';
+  const [catalog,circuits,history,draft,workDate,menuRules,menuRulesText]=await Promise.all([
+    load(STORAGE.catalog), load(STORAGE.circuits), load(STORAGE.history), load(STORAGE.draft), load(STORAGE.workDate), load(STORAGE.menuRules), load(STORAGE.menuRulesText)
+  ]);
+  state.catalog=catalog||DEFAULT_CATALOG;
+  state.circuits=circuits?.length ? circuits : DEFAULT_YOUTUBE_CIRCUITS;
+  state.history=(history||[]).map(h=>({ ...h, exercises: (h.exercises||[]).map(normalizeExercise) }));
+  state.draft=draft ? normalizeDraft(draft) : null;
+  state.workDate=workDate||null;
+  if(typeof menuRulesText === 'string' && menuRulesText.trim()){
+    state.menuRulesText = menuRulesText;
+    state.menuRules = parseRulesFromNaturalLanguage(menuRulesText);
+  }else if(menuRules){
+    state.menuRules = normalizeMenuRules(menuRules);
+    state.menuRulesText = menuRules.summary || DEFAULT_MENU_RULES_TEXT;
+  }else{
+    state.menuRules = cloneMenuRules(DEFAULT_MENU_RULES);
+    state.menuRulesText = DEFAULT_MENU_RULES_TEXT;
+  }
+  const n=new Date();
+  state.screen={name:'calendar',year:n.getFullYear(),month:n.getMonth()};
+  if(!catalog || !circuits) await persist();
+  try{const saved=localStorage.getItem('csv_import_v1');if(saved)ACTIVE_DATA=JSON.parse(saved);}catch(e){}
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

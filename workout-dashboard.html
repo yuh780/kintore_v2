@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ダッシュボード</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0B0D10; --panel:#15181C; --panel-2:#1D2126; --line:#2A2F35;
+    --text:#ECEDEE; --muted:#9AA0A6; --accent:#FFB020; --danger:#FF5A4E;
+    --done:#35D48A; --mono:'SF Mono','Menlo','Consolas',monospace;
+    --bench:#FFB020; --tbar:#35D48A; --squat:#FF5A4E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Segoe UI',sans-serif;}
+  #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+  /* header */
+  header.topbar{
+    padding:20px 16px 16px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--bg);z-index:5;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .back-btn{
+    background:none;border:none;color:var(--muted);font-size:20px;
+    min-width:44px;min-height:44px;padding:12px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    text-decoration:none;
+  }
+  .page-title{font-size:20px;font-weight:800;letter-spacing:-0.02em;}
+  .spacer{min-width:44px;}
+
+  main{flex:1;padding:16px 16px 80px;}
+
+  /* section */
+  .sec-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;
+    text-transform:uppercase;margin:20px 0 10px;}
+  .sec-label:first-child{margin-top:0;}
+
+  /* goal cards */
+  .goal-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px;margin-bottom:10px;}
+  .goal-card .gc-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .goal-card .gc-title{font-size:14px;font-weight:700;}
+  .goal-card .gc-pct{font-size:13px;font-weight:700;}
+  .goal-card .gc-bar{height:6px;background:var(--panel-2);border-radius:99px;overflow:hidden;margin-bottom:10px;}
+  .goal-card .gc-fill{height:100%;border-radius:99px;transition:width .6s ease;}
+  .goal-card .gc-nums{display:flex;gap:12px;}
+  .goal-card .gc-item{flex:1;background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;}
+  .goal-card .gc-val{font-size:20px;font-weight:800;line-height:1;}
+  .goal-card .gc-lbl{font-size:10px;color:var(--muted);margin-top:3px;}
+
+  /* cardio card */
+  .cardio-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cardio-card .cc-left .cc-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+  .cardio-card .cc-left .cc-sub{font-size:12px;color:var(--muted);}
+  .cardio-card .cc-num{font-size:40px;font-weight:800;color:var(--done);line-height:1;}
+  .cardio-card .cc-unit{font-size:12px;color:var(--muted);text-align:right;}
+
+  /* freq */
+  .freq-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px;}
+  .freq-chart-box{position:relative;height:160px;}
+
+  /* tabs */
+  .tab-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;
+    -ms-overflow-style:none;scrollbar-width:none;}
+  .tab-scroll::-webkit-scrollbar{display:none;}
+  .tab-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    font-size:12px;padding:6px 14px;border-radius:99px;cursor:pointer;white-space:nowrap;
+    transition:all .15s;flex-shrink:0;}
+  .tab-btn.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .ex-chart-box{position:relative;height:200px;}
+  .tabs-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px;}
+
+  /* recent */
+  .session-card{border-bottom:1px solid var(--line);padding:14px 0;}
+  .session-card:last-child{border-bottom:none;}
+  .recent-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 16px 0;margin-bottom:10px;}
+  .s-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .s-date{font-size:14px;font-weight:700;}
+  .s-tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--panel-2);color:var(--muted);}
+  .s-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .s-chip{font-size:11px;background:var(--panel-2);border-radius:6px;padding:3px 8px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <a class="back-btn" href="./index.html">←</a>
+    <div class="page-title">📊 ダッシュボード</div>
+    <div class="spacer"></div>
+  </header>
+  <main>
+    <div class="sec-label">目標トラッカー</div>
+    <div id="goals"></div>
+
+    <div class="sec-label">週別トレーニング回数</div>
+    <div class="freq-card"><div class="freq-chart-box"><canvas id="freq-chart"></canvas></div></div>
+
+    <div class="sec-label">種目別推移</div>
+    <div class="tabs-card">
+      <div class="tab-scroll" id="tab-bar"></div>
+      <div id="tab-panels"></div>
+    </div>
+
+    <div class="sec-label">直近セッション</div>
+    <div class="recent-card" id="recent"></div>
+  </main>
+</div>
+
+<script>
+/* DATA-START */
+const DATA = [];
+/* DATA-END */
+
+const CARDIO = '有酸素（トレッドミル）';
+const epley = (w,r) => r===1 ? w : Math.round(w*(1+r/30)*10)/10;
+
+function sessionDates(){
+  return [...new Set(DATA.filter(d=>d.exercise!==CARDIO).map(d=>d.date))].sort();
+}
+function bestRM(ex){
+  const sets=DATA.filter(d=>d.exercise===ex&&d.weight_kg>0);
+  if(!sets.length)return null;
+  return sets.reduce((b,d)=>{ const rm=epley(d.weight_kg,d.reps); return rm>b.rm?{rm,date:d.date,w:d.weight_kg,r:d.reps}:b; },{rm:0});
+}
+
+// ---- goal cards ----
+function renderBenchGoal(){
+  const GOAL=100,COLOR='var(--bench)';
+  const b=bestRM('ベンチプレス'); const rm=b?b.rm:0;
+  const pct=Math.min(100,Math.round(rm/GOAL*100));
+  document.getElementById('goals').innerHTML+=`
+  <div class="goal-card">
+    <div class="gc-head"><div class="gc-title">🏋️ ベンチプレス 100kg</div><div class="gc-pct" style="color:${COLOR}">${pct}%</div></div>
+    <div class="gc-bar"><div class="gc-fill" style="width:${pct}%;background:${COLOR}"></div></div>
+    <div class="gc-nums">
+      <div class="gc-item"><div class="gc-val" style="color:${COLOR}">${rm}</div><div class="gc-lbl">推定1RM (kg)</div></div>
+      <div class="gc-item"><div class="gc-val">100</div><div class="gc-lbl">目標 (kg)</div></div>
+      <div class="gc-item"><div class="gc-val" style="color:var(--danger)">-${Math.round((GOAL-rm)*10)/10}</div><div class="gc-lbl">残り (kg)</div></div>
+    </div>
+  </div>`;
+}
+function renderLiftGoal(ex,goal,color,icon){
+  const b=bestRM(ex); const rm=b?b.rm:0;
+  const pct=Math.min(100,Math.round(rm/goal*100));
+  document.getElementById('goals').innerHTML+=`
+  <div class="goal-card">
+    <div class="gc-head"><div class="gc-title">${icon} ${ex} ${goal}kg</div><div class="gc-pct" style="color:${color}">${pct}%</div></div>
+    <div class="gc-bar"><div class="gc-fill" style="width:${pct}%;background:${color}"></div></div>
+    <div class="gc-nums">
+      <div class="gc-item"><div class="gc-val" style="color:${color}">${rm}</div><div class="gc-lbl">推定1RM (kg)</div></div>
+      <div class="gc-item"><div class="gc-val">${goal}</div><div class="gc-lbl">目標 (kg)</div></div>
+      <div class="gc-item"><div class="gc-val" style="color:var(--danger)">-${Math.round((goal-rm)*10)/10}</div><div class="gc-lbl">残り (kg)</div></div>
+    </div>
+  </div>`;
+}
+function renderCardio(){
+  const total=DATA.filter(d=>d.exercise===CARDIO).length;
+  const today=new Date('2026-08-05');
+  const dow=today.getDay()===0?6:today.getDay()-1;
+  const mon=new Date(today); mon.setDate(today.getDate()-dow);
+  const monStr=mon.toISOString().slice(0,10);
+  const sunStr=new Date(mon.getTime()+6*86400000).toISOString().slice(0,10);
+  const week=DATA.filter(d=>d.exercise===CARDIO&&d.date>=monStr&&d.date<=sunStr).length;
+  document.getElementById('goals').innerHTML+=`
+  <div class="cardio-card">
+    <div class="cc-left"><div class="cc-title">🏃 有酸素</div><div class="cc-sub">累計 ${total}回</div></div>
+    <div><div class="cc-num">${week}</div><div class="cc-unit">回 / 今週</div></div>
+  </div>`;
+}
+
+// ---- freq chart ----
+function renderFreqChart(){
+  const dates=sessionDates();
+  const weekMap={};
+  dates.forEach(ds=>{
+    const d=new Date(ds); const dow=d.getDay()===0?6:d.getDay()-1;
+    const mon=new Date(d); mon.setDate(d.getDate()-dow);
+    const key=mon.toISOString().slice(0,10);
+    weekMap[key]=(weekMap[key]||0)+1;
+  });
+  const keys=Object.keys(weekMap).sort();
+  const labels=keys.map(k=>{const d=new Date(k);return `${d.getMonth()+1}/${d.getDate()}週`;});
+  const vals=keys.map(k=>weekMap[k]);
+  new Chart(document.getElementById('freq-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'回',data:vals,
+      backgroundColor:vals.map(v=>v>=4?'#FFB020':v>=3?'#b37800':v>=2?'#5a3d00':'#2A2F35'),
+      borderRadius:6,borderColor:'transparent'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y}回`}}},
+      scales:{
+        x:{ticks:{color:'#9AA0A6',font:{size:11}},grid:{display:false}},
+        y:{min:0,max:5,ticks:{color:'#9AA0A6',font:{size:11},stepSize:1},grid:{color:'#2A2F35'}}
+      }}
+  });
+}
+
+// ---- exercise tabs ----
+const CHART_EXS=['ベンチプレス','Tバーロー','スクワット','ラットプルダウン','パラレルアンダーグリップロー','ペックフライ'];
+const CHART_COLORS=['#FFB020','#35D48A','#FF5A4E','#56d0e0','#a78bfa','#f472b6'];
+const chartInst={};
+function renderExerciseTabs(){
+  const bar=document.getElementById('tab-bar');
+  const panels=document.getElementById('tab-panels');
+  CHART_EXS.forEach((ex,i)=>{
+    const btn=document.createElement('button');
+    btn.className='tab-btn'+(i===0?' active':'');
+    btn.textContent=ex;
+    btn.onclick=()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tp-'+i).classList.add('active');
+      if(!chartInst[i])buildChart(ex,i);
+    };
+    bar.appendChild(btn);
+    const p=document.createElement('div');
+    p.className='tab-panel'+(i===0?' active':'');
+    p.id='tp-'+i;
+    p.innerHTML=`<div class="ex-chart-box"><canvas id="ec-${i}"></canvas></div>`;
+    panels.appendChild(p);
+  });
+  buildChart(CHART_EXS[0],0);
+}
+function buildChart(ex,idx){
+  const sets=DATA.filter(d=>d.exercise===ex&&d.weight_kg>0);
+  const byDate={};
+  sets.forEach(d=>{const rm=epley(d.weight_kg,d.reps);if(!byDate[d.date]||rm>byDate[d.date])byDate[d.date]=rm;});
+  const labels=Object.keys(byDate).sort().map(d=>d.slice(5));
+  const vals=Object.keys(byDate).sort().map(d=>byDate[d]);
+  const color=CHART_COLORS[idx%CHART_COLORS.length];
+  chartInst[idx]=new Chart(document.getElementById('ec-'+idx).getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{label:'推定1RM',data:vals,borderColor:color,backgroundColor:color+'22',
+      fill:true,tension:0.3,pointRadius:4,pointBackgroundColor:color}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#9AA0A6',font:{size:10}},grid:{color:'#2A2F35'}},
+        y:{ticks:{color:'#9AA0A6',font:{size:10}},grid:{color:'#2A2F35'}}
+      }}
+  });
+}
+
+// ---- recent sessions ----
+function renderRecent(){
+  const dates=sessionDates().slice(-5).reverse();
+  document.getElementById('recent').innerHTML=dates.map(date=>{
+    const sets=DATA.filter(d=>d.date===date&&d.exercise!==CARDIO);
+    const exs=[...new Set(sets.map(d=>d.exercise))];
+    const cardio=DATA.find(d=>d.date===date&&d.exercise===CARDIO);
+    return `<div class="session-card">
+      <div class="s-head">
+        <div class="s-date">${date}</div>
+        <div class="s-tag">${exs.length}種目${cardio?' 🏃':''}</div>
+      </div>
+      <div class="s-chips">
+        ${exs.map(ex=>{
+          const s=sets.filter(d=>d.exercise===ex);
+          return `<div class="s-chip">${ex} ${Math.max(...s.map(d=>d.weight_kg))}kg×${s.length}セット</div>`;
+        }).join('')}
+        ${cardio?`<div class="s-chip">🏃 ${cardio.notes}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// init
+renderBenchGoal();
+renderLiftGoal('Tバーロー',90,'var(--tbar)','🔱');
+renderLiftGoal('スクワット',120,'var(--squat)','🦵');
+renderCardio();
+renderFreqChart();
+renderExerciseTabs();
+renderRecent();
+</script>
+</body>
+</html>
