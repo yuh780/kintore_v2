@@ -251,11 +251,29 @@
     font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
   }
   .btn-generate-menu:active{border-color:var(--accent); color:var(--accent);}
+  .gen-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:12px; margin-bottom:4px;
+  }
+  .gen-panel-row{display:flex; gap:8px; align-items:end;}
+  .gen-panel-row .settings-field{flex:1; margin-bottom:0;}
+  .gen-panel-row input[type="date"]{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:12px; color:var(--text); font-size:15px; font-family:inherit;
+  }
+  .gen-panel-row .btn-generate-menu{width:auto; flex-shrink:0; padding:12px 14px; white-space:nowrap;}
   .cal-hint{
     text-align:center; font-size:12px; color:var(--muted);
     line-height:1.5; margin:0 0 4px;
   }
   .cal-section{margin-bottom:4px;}
+  .settings-grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .settings-grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
+  .settings-check{
+    display:flex; align-items:center; gap:10px; padding:10px 0;
+    font-size:14px; font-weight:600; color:var(--text);
+  }
+  .settings-check input{width:18px; height:18px; accent-color:var(--accent);}
   .settings-block{
     background:var(--panel); border:1px solid var(--line); border-radius:16px;
     padding:16px; margin-bottom:12px;
@@ -278,10 +296,14 @@
     padding:12px; color:var(--text); font-size:15px; font-family:inherit;
   }
   .settings-field textarea{min-height:72px; resize:vertical; line-height:1.55;}
-  .settings-field textarea#rule-text{
-    min-height:320px; font-size:14px; line-height:1.65;
+  .settings-field textarea#rule-json{
+    min-height:120px; font-size:13px; font-family:var(--mono); line-height:1.5;
   }
   .settings-actions{display:flex; flex-direction:column; gap:8px; margin-top:4px;}
+  .settings-field input[type="date"]{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:12px; color:var(--text); font-size:15px; font-family:inherit;
+  }
   .settings-link-btn{
     width:100%; text-align:left; padding:14px 16px; border-radius:12px;
     border:1px solid var(--line); background:var(--panel-2); color:var(--text);
@@ -442,7 +464,7 @@
 const DATA = [];
 /* DATA-END */
 
-let ACTIVE_DATA = DATA; // CSV取込で上書き可能
+let ACTIVE_DATA = DATA; // CSV取込で上書き可能（履歴があれば履歴を優先）
 
 const CARDIO = '有酸素（トレッドミル）';
 const epley = (w,r) => r===1 ? w : Math.round(w*(1+r/30)*10)/10;
@@ -458,11 +480,45 @@ function loadGoalSettings(){
 }
 function saveGoalSettings(s){try{localStorage.setItem('goal_settings_v1',JSON.stringify(s));}catch(e){}}
 
+function historyToFlatRows(){
+  const rows = [];
+  (state.history || []).forEach(h=>{
+    (h.exercises || []).forEach(ex=>{
+      if(ex.type === 'video') return;
+      let order = 0;
+      (ex.sets || []).forEach(set=>{
+        const w = parseFloat(set.weight);
+        const r = parseInt(set.reps, 10);
+        const hasW = set.weight !== '' && set.weight != null && Number.isFinite(w);
+        const hasR = set.reps !== '' && set.reps != null && Number.isFinite(r);
+        if(!hasW && !hasR) return;
+        order++;
+        rows.push({
+          date: h.date,
+          exercise: ex.name,
+          set: order,
+          weight_kg: hasW ? w : 0,
+          reps: hasR ? r : 0,
+          notes: ''
+        });
+      });
+    });
+  });
+  return rows;
+}
+
+/** 進捗・RM・チャート用。履歴を正とし、なければ CSV/埋め込みデータを使う */
+function getAnalyticsData(){
+  const fromHistory = historyToFlatRows();
+  if(fromHistory.length) return fromHistory;
+  return Array.isArray(ACTIVE_DATA) ? ACTIVE_DATA : [];
+}
+
 function sessionDates(){
-  return [...new Set(ACTIVE_DATA.filter(d=>d.exercise!==CARDIO).map(d=>d.date))].sort();
+  return [...new Set(getAnalyticsData().filter(d=>d.exercise!==CARDIO).map(d=>d.date))].sort();
 }
 function bestRM(ex){
-  const sets=ACTIVE_DATA.filter(d=>d.exercise===ex&&d.weight_kg>0);
+  const sets=getAnalyticsData().filter(d=>d.exercise===ex&&d.weight_kg>0&&d.reps>0);
   if(!sets.length)return null;
   return sets.reduce((b,d)=>{ const rm=epley(d.weight_kg,d.reps); return rm>b.rm?{rm,date:d.date,w:d.weight_kg,r:d.reps}:b; },{rm:0});
 }
@@ -471,7 +527,7 @@ function renderGoalCard(slot,ex,goal,color,icon){
   const b=bestRM(ex); const rm=b?b.rm:0;
   const pct=Math.min(100,Math.round(rm/goal*100));
   const prDate=b?b.date.slice(5).replace('-','/'):'--';
-  const exList=[...new Set(ACTIVE_DATA.filter(d=>d.exercise!==CARDIO&&d.weight_kg>0).map(d=>d.exercise))].sort();
+  const exList=[...new Set(getAnalyticsData().filter(d=>d.exercise!==CARDIO&&d.weight_kg>0).map(d=>d.exercise))].sort();
   const opts=exList.map(e=>`<option value="${e}">`).join('');
   return `
   <div class="goal-card" id="gc-slot-${slot}">
@@ -501,13 +557,18 @@ function renderGoalCard(slot,ex,goal,color,icon){
   </div>`;
 }
 function renderCardio(){
-  const total=ACTIVE_DATA.filter(d=>d.exercise===CARDIO).length;
+  const data=getAnalyticsData();
+  const total=data.filter(d=>d.exercise===CARDIO || (d.exercise||'').includes('有酸素') || (d.exercise||'').includes('トレッドミル')).length;
   const today=new Date();
   const dow=today.getDay()===0?6:today.getDay()-1;
   const mon=new Date(today); mon.setDate(today.getDate()-dow);
-  const monStr=mon.toISOString().slice(0,10);
-  const sunStr=new Date(mon.getTime()+6*86400000).toISOString().slice(0,10);
-  const week=ACTIVE_DATA.filter(d=>d.exercise===CARDIO&&d.date>=monStr&&d.date<=sunStr).length;
+  const monStr=dateStrFromDate(mon);
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const sunStr=dateStrFromDate(sun);
+  const week=data.filter(d=>{
+    const isCardio=d.exercise===CARDIO || (d.exercise||'').includes('有酸素') || (d.exercise||'').includes('トレッドミル');
+    return isCardio && d.date>=monStr && d.date<=sunStr;
+  }).length;
   document.getElementById('goals').innerHTML+=`
   <div class="cardio-card">
     <div class="cc-left"><div class="cc-title">🏃 有酸素</div><div class="cc-sub">累計 ${total}回</div></div>
@@ -564,7 +625,7 @@ function renderExerciseTabs(){
   buildChart(CHART_EXS[0],0);
 }
 function buildChart(ex,idx){
-  const sets=ACTIVE_DATA.filter(d=>d.exercise===ex&&d.weight_kg>0);
+  const sets=getAnalyticsData().filter(d=>d.exercise===ex&&d.weight_kg>0);
   const byDate={};
   sets.forEach(d=>{const rm=epley(d.weight_kg,d.reps);if(!byDate[d.date]||rm>byDate[d.date])byDate[d.date]=rm;});
   const labels=Object.keys(byDate).sort().map(d=>d.slice(5));
@@ -588,9 +649,10 @@ function renderRecent(){
   const el=document.getElementById('recent');
   if(!el)return;
   el.innerHTML=dates.map(date=>{
-    const sets=ACTIVE_DATA.filter(d=>d.date===date&&d.exercise!==CARDIO);
+    const data=getAnalyticsData();
+    const sets=data.filter(d=>d.date===date&&d.exercise!==CARDIO);
     const exs=[...new Set(sets.map(d=>d.exercise))];
-    const cardio=ACTIVE_DATA.find(d=>d.date===date&&d.exercise===CARDIO);
+    const cardio=data.find(d=>d.date===date&&(d.exercise===CARDIO||(d.exercise||'').includes('トレッドミル')));
     return `<div class="session-card">
       <div class="s-head">
         <div class="s-date">${date}</div>
@@ -946,7 +1008,7 @@ const DEFAULT_YOUTUBE_CIRCUITS = [
 const DEFAULT_CATALOG = {
   chest:    { name:'胸',   color:'#FF6B6B', exercises:['ベンチプレス','インクラインダンベルプレス','アイソラテラルワイドチェスト','ペックフライ'] },
   back:     { name:'背中', color:'#4FA8FF', exercises:['ラットプル（マシン）','Tバーロー','ラットプル（パラレルアンダーグリップ）','アシストチンニング'] },
-  legs:     { name:'脚',   color:'#35D48A', exercises:['スクワット'] },
+  legs:     { name:'脚',   color:'#35D48A', exercises:['スクワット','レッグプレス','レッグカール','ハックスクワット'] },
   biceps:   { name:'二頭', color:'#FFB020', exercises:['ケーブルアームカール','ケーブルハンマーカール','ビハインドカール（前腕）'] },
   triceps:  { name:'三頭', color:'#FF8B6B', exercises:['ケーブルプレスダウン','ケーブルオーバーヘッドエクステンション'] },
   cardio:   { name:'有酸素', color:'#6B9FFF', exercises:['有酸素（トレッドミル）'] }
@@ -1111,12 +1173,76 @@ function getMenuRulesText(){
   return state.menuRulesText || DEFAULT_MENU_RULES_TEXT;
 }
 
+function rulesToSummaryText(r){
+  const rules = normalizeMenuRules(r);
+  const rest = rules.minRestDaysByPart;
+  const pairChest = (rules.pairings.chest || []).includes('triceps');
+  const pairBack = (rules.pairings.back || []).includes('biceps');
+  return [
+    `主部位${rules.exercisesPerPrimary}種目 / 補助${rules.exercisesPerAccessory}種目`,
+    `セット${rules.defaultSetCount} / 回数${rules.defaultReps}`,
+    `休養: 胸${rest.chest}日・背中${rest.back}日・脚${rest.legs}日`,
+    `補助: ${pairChest?'胸→三頭':''}${pairChest&&pairBack?' / ':''}${pairBack?'背中→二頭':''}${!pairChest&&!pairBack?'なし':''}`,
+    rules.progression.enabled
+      ? `負荷アップ: ${rules.progression.targetReps}回クリアで +${rules.progression.incrementKg}kg`
+      : '負荷アップ: なし',
+    rules.cardio.enabled
+      ? `有酸素: 週${rules.cardio.targetPerWeek}回${(rules.cardio.skipWithPrimary||[]).includes('legs')?'（脚の日は除外）':''}`
+      : '有酸素: なし'
+  ].join('\n');
+}
+
+async function saveMenuRules(rules){
+  state.menuRules = normalizeMenuRules(rules);
+  state.menuRulesText = rulesToSummaryText(state.menuRules);
+  await save(STORAGE.menuRules, state.menuRules);
+  await save(STORAGE.menuRulesText, state.menuRulesText);
+}
+
 async function saveMenuRulesFromText(text){
   const trimmed = String(text || '').trim();
-  state.menuRulesText = trimmed || DEFAULT_MENU_RULES_TEXT;
-  state.menuRules = parseRulesFromNaturalLanguage(state.menuRulesText);
+  if(!trimmed){
+    await saveMenuRules(DEFAULT_MENU_RULES);
+    return;
+  }
+  const json = extractJsonFromRulesText(trimmed);
+  if(json){
+    await saveMenuRules({ ...json, summary: trimmed });
+    state.menuRulesText = trimmed;
+    await save(STORAGE.menuRulesText, state.menuRulesText);
+    return;
+  }
+  // 自然言語は補助的に解釈（主経路はフォーム）
+  await saveMenuRules(parseRulesFromNaturalLanguage(trimmed));
+  state.menuRulesText = trimmed;
   await save(STORAGE.menuRulesText, state.menuRulesText);
-  await save(STORAGE.menuRules, state.menuRules);
+}
+
+function readMenuRulesFromForm(){
+  const num = (id, fallback)=>{
+    const v = parseFloat(document.getElementById(id)?.value);
+    return Number.isFinite(v) ? v : fallback;
+  };
+  const checked = (id)=> !!document.getElementById(id)?.checked;
+  const current = getMenuRules();
+  const next = cloneMenuRules(current);
+  next.exercisesPerPrimary = num('rule-ex-primary', 3);
+  next.exercisesPerAccessory = num('rule-ex-accessory', 2);
+  next.defaultSetCount = num('rule-sets', 3);
+  next.defaultReps = num('rule-reps', 8);
+  next.minRestDaysByPart.chest = num('rule-rest-chest', 2);
+  next.minRestDaysByPart.back = num('rule-rest-back', 2);
+  next.minRestDaysByPart.legs = num('rule-rest-legs', 3);
+  next.pairings.chest = checked('rule-pair-chest') ? ['triceps'] : [];
+  next.pairings.back = checked('rule-pair-back') ? ['biceps'] : [];
+  next.pairings.legs = [];
+  next.progression.enabled = checked('rule-prog-enabled');
+  next.progression.targetReps = num('rule-prog-reps', 8);
+  next.progression.incrementKg = num('rule-prog-inc', 2.5);
+  next.cardio.enabled = checked('rule-cardio-enabled');
+  next.cardio.targetPerWeek = num('rule-cardio-week', 2);
+  next.cardio.skipWithPrimary = checked('rule-cardio-skip-legs') ? ['legs'] : [];
+  return normalizeMenuRules(next);
 }
 
 let outsideCloseCleanup = null;
@@ -1395,23 +1521,36 @@ function lastExerciseRecord(name, beforeDate){
   return null;
 }
 
-function pickExerciseNames(partId, count, today){
+function pickExerciseNames(partId, count, targetDate){
   const catalog = state.catalog || DEFAULT_CATALOG;
   const catalogNames = [...(catalog[partId]?.exercises || [])];
-  if(!catalogNames.length || count <= 0) return [];
+  if(count <= 0) return [];
 
-  const last = lastSessionForPart(partId, today);
+  const last = lastSessionForPart(partId, targetDate);
   const fromLast = last
     ? (last.exercises || [])
-        .filter(ex=>ex.type!=='video' && (ex.partId===partId || findPartIdForExercise(ex.name)===partId))
+        .filter(ex=>ex.type!=='video' && (ex.partId===partId || findPartIdForExercise(ex.name)===partId || inferPartIdForImport(ex.name)===partId))
         .map(ex=>ex.name)
         .filter((n,i,arr)=>arr.indexOf(n)===i)
     : [];
 
-  const picked = [];
-  fromLast.forEach(n=>{ if(picked.length < count && catalogNames.includes(n)) picked.push(n); });
-  catalogNames.forEach(n=>{ if(picked.length < count && !picked.includes(n)) picked.push(n); });
-  return picked.slice(0, count);
+  const fromHistory = [];
+  getStrengthHistory().forEach(h=>{
+    (h.exercises || []).forEach(ex=>{
+      if(ex.type === 'video') return;
+      const pid = ex.partId || findPartIdForExercise(ex.name) || inferPartIdForImport(ex.name);
+      if(pid === partId && !fromHistory.includes(ex.name)) fromHistory.push(ex.name);
+    });
+  });
+
+  const pool = [];
+  fromLast.forEach(n=>{ if(!pool.includes(n)) pool.push(n); });
+  catalogNames.forEach(n=>{ if(!pool.includes(n)) pool.push(n); });
+  fromHistory.forEach(n=>{ if(!pool.includes(n)) pool.push(n); });
+
+  const picked = pool.slice(0, count);
+  picked.forEach(n=>ensureExerciseInCatalog(partId, n));
+  return picked;
 }
 
 function buildSetsForExercise(name, today){
@@ -1481,10 +1620,10 @@ function makeGeneratedExercise(partId, name, sets){
   };
 }
 
-function generateTodayMenu(today = todayStr()){
+function generateMenuForDate(targetDate = todayStr()){
   const rules = getMenuRules();
   const catalog = state.catalog || DEFAULT_CATALOG;
-  const primary = selectPrimaryPart(today);
+  const primary = selectPrimaryPart(targetDate);
   const primaryId = primary.partId;
   const primaryName = catalog[primaryId]?.name || primaryId;
   const reasons = [];
@@ -1496,32 +1635,32 @@ function generateTodayMenu(today = todayStr()){
   }
 
   const exercises = [];
-  pickExerciseNames(primaryId, rules.exercisesPerPrimary, today).forEach(name=>{
-    exercises.push(makeGeneratedExercise(primaryId, name, buildSetsForExercise(name, today)));
+  pickExerciseNames(primaryId, rules.exercisesPerPrimary, targetDate).forEach(name=>{
+    exercises.push(makeGeneratedExercise(primaryId, name, buildSetsForExercise(name, targetDate)));
   });
 
   const accessories = rules.pairings[primaryId] || [];
   accessories.forEach(accId=>{
     const accName = catalog[accId]?.name || accId;
-    const lastAcc = lastTrainedDate(accId, today);
-    const rest = lastAcc == null ? 999 : daysBetweenDates(lastAcc, today);
+    const lastAcc = lastTrainedDate(accId, targetDate);
+    const rest = lastAcc == null ? 999 : daysBetweenDates(lastAcc, targetDate);
     const minRest = rules.minRestDaysByPart[accId] ?? 1;
     if(rest < minRest){
       reasons.push(`補助「${accName}」は回復不足のためスキップ`);
       return;
     }
-    const names = pickExerciseNames(accId, rules.exercisesPerAccessory, today);
+    const names = pickExerciseNames(accId, rules.exercisesPerAccessory, targetDate);
     if(names.length){
       reasons.push(`補助に「${accName}」を追加`);
-      names.forEach(name=>exercises.push(makeGeneratedExercise(accId, name, buildSetsForExercise(name, today))));
+      names.forEach(name=>exercises.push(makeGeneratedExercise(accId, name, buildSetsForExercise(name, targetDate))));
     }
   });
 
-  if(shouldAddCardio(primaryId, today)){
+  if(shouldAddCardio(primaryId, targetDate)){
     const cardioNames = catalog[rules.cardio.partId]?.exercises || ['有酸素（トレッドミル）'];
     const cardioName = cardioNames[0];
     exercises.push(makeGeneratedExercise(rules.cardio.partId, cardioName, [createEmptySet('', '')]));
-    reasons.push(`今週の有酸素が目標未達のため追加（週${rules.cardio.targetPerWeek}回目標）`);
+    reasons.push(`週の有酸素が目標未達のため追加（週${rules.cardio.targetPerWeek}回目標）`);
   }
 
   if(rules.progression?.enabled){
@@ -1529,7 +1668,7 @@ function generateTodayMenu(today = todayStr()){
   }
 
   return {
-    date: today,
+    date: targetDate,
     primaryPartId: primaryId,
     primaryName,
     reason: reasons.join('\n'),
@@ -1537,30 +1676,36 @@ function generateTodayMenu(today = todayStr()){
   };
 }
 
-function hasTodayMenu(){
-  const today = todayStr();
-  const todayHist = state.history.find(h=>h.date===today);
-  const todayDraft = state.draft?.date === today ? state.draft : null;
-  return !!(todayHist?.exercises?.length || todayDraft?.exercises?.length);
+function hasMenuForDate(date){
+  const hist = state.history.find(h=>h.date===date);
+  const draft = state.draft?.date === date ? state.draft : null;
+  return !!(hist?.exercises?.length || draft?.exercises?.length);
 }
 
-async function applyGeneratedMenu(){
-  const plan = generateTodayMenu();
-  if(!plan.exercises.length){
-    alert('メニューを生成できませんでした。\n種目カタログに種目があるか確認してください。');
+async function applyGeneratedMenu(targetDate){
+  const today = todayStr();
+  const date = targetDate || today;
+  if(date < today){
+    alert('今日以降の日付を選んでください');
     return false;
   }
 
+  const plan = generateMenuForDate(date);
+  if(!plan.exercises.length){
+    alert('メニューを生成できませんでした。\n種目カタログまたは履歴に種目があるか確認してください。');
+    return false;
+  }
+
+  const dateLabel = formatDateLabel(date);
   const lines = plan.exercises.map(ex=>`・${ex.name}`).join('\n');
-  const replaceNote = hasTodayMenu() ? '\n\n※今日の種目は置き換わります。' : '';
+  const replaceNote = hasMenuForDate(date) ? `\n\n※${dateLabel}の種目は置き換わります。` : '';
   const ok = confirm(
-    `今日のメニュー（主部位: ${plan.primaryName}）\n\n${lines}\n\n【判断理由】\n${plan.reason}${replaceNote}\n\nこの内容で今日のメニューにしますか？`
+    `${dateLabel}のメニュー（主部位: ${plan.primaryName}）\n\n${lines}\n\n【判断理由】\n${plan.reason}${replaceNote}\n\nこの内容でメニューにしますか？`
   );
   if(!ok) return false;
 
-  const today = todayStr();
-  state.workDate = null;
-  state.draft = { date: today, exercises: plan.exercises };
+  state.workDate = isToday(date) ? null : date;
+  state.draft = { date, exercises: plan.exercises };
   state.expandedExIds = [];
   await persist();
   state.screen = { name: 'home' };
@@ -2075,7 +2220,7 @@ function getBig3Class(entry){
 }
 
 function getBig3ClassForDate(ds, entry){
-  const allRows=ACTIVE_DATA.filter(d=>d.date===ds);
+  const allRows=getAnalyticsData().filter(d=>d.date===ds);
   const strengthRows=allRows.filter(d=>d.exercise!==CARDIO);
   if(strengthRows.length>0){
     const names=strengthRows.map(d=>d.exercise);
@@ -2103,8 +2248,8 @@ function renderCalendar(){
   for(let d=1;d<=dim;d++){
     const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const big3=getBig3ClassForDate(ds, byDate[ds]);
-    const hasCardio=ACTIVE_DATA.some(r=>r.date===ds&&r.exercise===CARDIO)||
-      (byDate[ds]?.exercises||[]).some(e=>(e.name||'').includes('トレッドミル')||(e.name||'').includes('ランニング')||(e.name||'').includes('ウォーキング')||(e.name||'').includes('エアロバイク'));
+    const hasCardio=getAnalyticsData().some(r=>r.date===ds&&(r.exercise===CARDIO||(r.exercise||'').includes('トレッドミル')||(r.exercise||'').includes('有酸素')))||
+      (byDate[ds]?.exercises||[]).some(e=>(e.name||'').includes('トレッドミル')||(e.name||'').includes('ランニング')||(e.name||'').includes('ウォーキング')||(e.name||'').includes('エアロバイク')||(e.name||'').includes('有酸素'));
     const star=hasCardio?'<span class="cal-cardio-star">★</span>':'';
     cells.push(`<div class="cal-cell ${big3} ${ds===todayS?'today':''}" data-cal-date="${ds}">${star}${d}</div>`);
   }
@@ -2131,16 +2276,28 @@ function renderCalendar(){
       </div>
       <div class="home-cta">
         <button type="button" class="btn-today-workout" data-action="go-today-edit">今日のトレーニング</button>
-        <button type="button" class="btn-generate-menu" data-action="generate-today-menu">今日のメニューを生成</button>
+        <div class="gen-panel">
+          <div class="gen-panel-row">
+            <div class="settings-field">
+              <label for="gen-date">メニュー生成日</label>
+              <input id="gen-date" type="date" min="${todayS}" value="${todayS}">
+            </div>
+            <button type="button" class="btn-generate-menu" data-action="generate-menu">生成する</button>
+          </div>
+        </div>
       </div>
-      <div class="cal-hint">日付をタップして過去日も編集できます</div>
+      <div class="cal-hint">今日以降の日付を選んでメニューを生成できます。カレンダーの日付タップで手動編集も可能です。</div>
       <div class="sec-label" style="margin-top:18px">進捗・目標</div>
       <div id="goals"></div>
     </main>`;
 }
 
 function renderSettings(){
-  const rulesText = getMenuRulesText();
+  const r = getMenuRules();
+  const rest = r.minRestDaysByPart;
+  const pairChest = (r.pairings.chest || []).includes('triceps');
+  const pairBack = (r.pairings.back || []).includes('biceps');
+  const skipLegsCardio = (r.cardio.skipWithPrimary || []).includes('legs');
   return `
     <header class="topbar">
       <button class="icon-btn" data-action="back-calendar" aria-label="戻る">‹</button>
@@ -2150,10 +2307,62 @@ function renderSettings(){
     <main class="settings-main">
       <div class="settings-block">
         <h2>メニュー生成ルール</h2>
-        <p class="settings-desc">他の生成AIで作ったルール文を、そのまま貼り付けて保存してください。「今日のメニューを生成」に反映されます。</p>
+        <p class="settings-desc">数値・チェックで設定します。自然言語だけの指定は取りこぼしやすいため、構造化入力に戻しています。</p>
+        <div class="settings-grid-2">
+          <div class="settings-field">
+            <label>主部位の種目数</label>
+            <input id="rule-ex-primary" type="number" min="1" max="6" step="1" value="${r.exercisesPerPrimary}">
+          </div>
+          <div class="settings-field">
+            <label>補助の種目数</label>
+            <input id="rule-ex-accessory" type="number" min="0" max="4" step="1" value="${r.exercisesPerAccessory}">
+          </div>
+        </div>
+        <div class="settings-grid-2">
+          <div class="settings-field">
+            <label>セット数</label>
+            <input id="rule-sets" type="number" min="1" max="10" step="1" value="${r.defaultSetCount}">
+          </div>
+          <div class="settings-field">
+            <label>デフォルト回数</label>
+            <input id="rule-reps" type="number" min="1" max="30" step="1" value="${r.defaultReps}">
+          </div>
+        </div>
         <div class="settings-field">
-          <label>ルール文</label>
-          <textarea id="rule-text" placeholder="例）胸・背中・脚を回復優先で回す。主部位3種目…">${esc(rulesText)}</textarea>
+          <label>最短休養日数</label>
+          <div class="settings-grid-3">
+            <div><label>胸</label><input id="rule-rest-chest" type="number" min="0" max="14" value="${rest.chest}"></div>
+            <div><label>背中</label><input id="rule-rest-back" type="number" min="0" max="14" value="${rest.back}"></div>
+            <div><label>脚</label><input id="rule-rest-legs" type="number" min="0" max="14" value="${rest.legs}"></div>
+          </div>
+        </div>
+        <div class="settings-field">
+          <label>補助ペア</label>
+          <label class="settings-check"><input id="rule-pair-chest" type="checkbox" ${pairChest?'checked':''}> 胸の日に三頭を追加</label>
+          <label class="settings-check"><input id="rule-pair-back" type="checkbox" ${pairBack?'checked':''}> 背中の日に二頭を追加</label>
+        </div>
+        <div class="settings-field">
+          <label>負荷アップ</label>
+          <label class="settings-check"><input id="rule-prog-enabled" type="checkbox" ${r.progression.enabled?'checked':''}> 目標回数クリアで重量アップ</label>
+          <div class="settings-grid-2" style="margin-top:8px">
+            <div class="settings-field">
+              <label>目標回数</label>
+              <input id="rule-prog-reps" type="number" min="1" max="30" value="${r.progression.targetReps}">
+            </div>
+            <div class="settings-field">
+              <label>増量 (kg)</label>
+              <input id="rule-prog-inc" type="number" min="0" max="20" step="0.5" value="${r.progression.incrementKg}">
+            </div>
+          </div>
+        </div>
+        <div class="settings-field">
+          <label>有酸素</label>
+          <label class="settings-check"><input id="rule-cardio-enabled" type="checkbox" ${r.cardio.enabled?'checked':''}> メニューに有酸素を含める</label>
+          <label class="settings-check"><input id="rule-cardio-skip-legs" type="checkbox" ${skipLegsCardio?'checked':''}> 脚の日は有酸素を付けない</label>
+          <div class="settings-field" style="margin-top:8px">
+            <label>週の目標回数</label>
+            <input id="rule-cardio-week" type="number" min="0" max="7" value="${r.cardio.targetPerWeek}">
+          </div>
         </div>
         <div class="settings-actions">
           <button type="button" class="btn btn-primary" data-action="save-menu-rules">ルールを保存</button>
@@ -2209,15 +2418,13 @@ function attachHandlers(){
     render();
   });
   app.querySelector('[data-action="save-menu-rules"]')?.addEventListener('click',async()=>{
-    const text = document.getElementById('rule-text')?.value || '';
-    if(!text.trim()){ alert('ルール文を入力してください'); return; }
-    await saveMenuRulesFromText(text);
+    await saveMenuRules(readMenuRulesFromForm());
     alert('メニュー生成ルールを保存しました');
     render();
   });
   app.querySelector('[data-action="reset-menu-rules"]')?.addEventListener('click',async()=>{
-    if(!confirm('メニュー生成ルールを初期文に戻しますか？')) return;
-    await saveMenuRulesFromText(DEFAULT_MENU_RULES_TEXT);
+    if(!confirm('メニュー生成ルールを初期設定に戻しますか？')) return;
+    await saveMenuRules(DEFAULT_MENU_RULES);
     render();
   });
   app.querySelector('[data-action="download-csv"]')?.addEventListener('click',()=>{
@@ -2255,8 +2462,9 @@ function attachHandlers(){
     };
   });
   app.querySelector('[data-action="go-today-edit"]')?.addEventListener('click',()=>{ openEditDate(todayStr()); });
-  app.querySelector('[data-action="generate-today-menu"]')?.addEventListener('click',async()=>{
-    await applyGeneratedMenu();
+  app.querySelector('[data-action="generate-menu"]')?.addEventListener('click',async()=>{
+    const date = app.querySelector('#gen-date')?.value || todayStr();
+    await applyGeneratedMenu(date);
   });
   app.querySelector('[data-action="go-add"]')?.addEventListener('click',()=>{
     state.screen={
@@ -2528,12 +2736,14 @@ async function init(){
   state.history=(history||[]).map(h=>({ ...h, exercises: (h.exercises||[]).map(normalizeExercise) }));
   state.draft=draft ? normalizeDraft(draft) : null;
   state.workDate=workDate||null;
-  if(typeof menuRulesText === 'string' && menuRulesText.trim()){
+  if(menuRules){
+    state.menuRules = normalizeMenuRules(menuRules);
+    state.menuRulesText = (typeof menuRulesText === 'string' && menuRulesText.trim())
+      ? menuRulesText
+      : rulesToSummaryText(state.menuRules);
+  }else if(typeof menuRulesText === 'string' && menuRulesText.trim()){
     state.menuRulesText = menuRulesText;
     state.menuRules = parseRulesFromNaturalLanguage(menuRulesText);
-  }else if(menuRules){
-    state.menuRules = normalizeMenuRules(menuRules);
-    state.menuRulesText = menuRules.summary || DEFAULT_MENU_RULES_TEXT;
   }else{
     state.menuRules = cloneMenuRules(DEFAULT_MENU_RULES);
     state.menuRulesText = DEFAULT_MENU_RULES_TEXT;
