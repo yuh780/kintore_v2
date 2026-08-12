@@ -480,6 +480,16 @@ function loadGoalSettings(){
 }
 function saveGoalSettings(s){try{localStorage.setItem('goal_settings_v1',JSON.stringify(s));}catch(e){}}
 
+function isCardioExerciseName(name){
+  const n = name || '';
+  return n === CARDIO
+    || n.includes('有酸素')
+    || n.includes('トレッドミル')
+    || n.includes('ランニング')
+    || n.includes('ウォーキング')
+    || n.includes('エアロバイク');
+}
+
 function historyToFlatRows(){
   const rows = [];
   (state.history || []).forEach(h=>{
@@ -502,6 +512,17 @@ function historyToFlatRows(){
           notes: ''
         });
       });
+      // 有酸素は重量・回数未入力でも「実施」として1行残す
+      if(order === 0 && isCardioExerciseName(ex.name)){
+        rows.push({
+          date: h.date,
+          exercise: ex.name,
+          set: 1,
+          weight_kg: 0,
+          reps: 0,
+          notes: ''
+        });
+      }
     });
   });
   return rows;
@@ -514,8 +535,25 @@ function getAnalyticsData(){
   return Array.isArray(ACTIVE_DATA) ? ACTIVE_DATA : [];
 }
 
+/** 有酸素の実施日（1日1回として数える） */
+function getCardioSessionDates(){
+  const dates = new Set();
+  (state.history || []).forEach(h=>{
+    const hit = (h.exercises || []).some(ex=>{
+      if(ex.type === 'video') return false;
+      const pid = ex.partId || findPartIdForExercise(ex.name) || inferPartIdForImport(ex.name);
+      return pid === 'cardio' || isCardioExerciseName(ex.name);
+    });
+    if(hit) dates.add(h.date);
+  });
+  getAnalyticsData().forEach(d=>{
+    if(isCardioExerciseName(d.exercise)) dates.add(d.date);
+  });
+  return [...dates].sort();
+}
+
 function sessionDates(){
-  return [...new Set(getAnalyticsData().filter(d=>d.exercise!==CARDIO).map(d=>d.date))].sort();
+  return [...new Set(getAnalyticsData().filter(d=>!isCardioExerciseName(d.exercise)).map(d=>d.date))].sort();
 }
 function bestRM(ex){
   const sets=getAnalyticsData().filter(d=>d.exercise===ex&&d.weight_kg>0&&d.reps>0);
@@ -527,7 +565,7 @@ function renderGoalCard(slot,ex,goal,color,icon){
   const b=bestRM(ex); const rm=b?b.rm:0;
   const pct=Math.min(100,Math.round(rm/goal*100));
   const prDate=b?b.date.slice(5).replace('-','/'):'--';
-  const exList=[...new Set(getAnalyticsData().filter(d=>d.exercise!==CARDIO&&d.weight_kg>0).map(d=>d.exercise))].sort();
+  const exList=[...new Set(getAnalyticsData().filter(d=>!isCardioExerciseName(d.exercise)&&d.weight_kg>0).map(d=>d.exercise))].sort();
   const opts=exList.map(e=>`<option value="${e}">`).join('');
   return `
   <div class="goal-card" id="gc-slot-${slot}">
@@ -557,19 +595,19 @@ function renderGoalCard(slot,ex,goal,color,icon){
   </div>`;
 }
 function renderCardio(){
-  const data=getAnalyticsData();
-  const total=data.filter(d=>d.exercise===CARDIO || (d.exercise||'').includes('有酸素') || (d.exercise||'').includes('トレッドミル')).length;
-  const today=new Date();
-  const dow=today.getDay()===0?6:today.getDay()-1;
-  const mon=new Date(today); mon.setDate(today.getDate()-dow);
-  const monStr=dateStrFromDate(mon);
-  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
-  const sunStr=dateStrFromDate(sun);
-  const week=data.filter(d=>{
-    const isCardio=d.exercise===CARDIO || (d.exercise||'').includes('有酸素') || (d.exercise||'').includes('トレッドミル');
-    return isCardio && d.date>=monStr && d.date<=sunStr;
-  }).length;
-  document.getElementById('goals').innerHTML+=`
+  const dates = getCardioSessionDates();
+  const total = dates.length;
+  const today = todayStr();
+  const d = parseISODate(today);
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  const mon = new Date(d); mon.setDate(d.getDate() - dow);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const monStr = dateStrFromDate(mon);
+  const sunStr = dateStrFromDate(sun);
+  const week = dates.filter(ds => ds >= monStr && ds <= sunStr).length;
+  const goalsEl = document.getElementById('goals');
+  if(!goalsEl) return;
+  goalsEl.innerHTML += `
   <div class="cardio-card">
     <div class="cc-left"><div class="cc-title">🏃 有酸素</div><div class="cc-sub">累計 ${total}回</div></div>
     <div><div class="cc-num">${week}</div><div class="cc-unit">回 / 今週</div></div>
@@ -824,11 +862,36 @@ function inferPartIdForImport(name){
   const n = name || '';
   if(n.includes('トレッドミル')||n.includes('ランニング')||n.includes('ウォーキング')||n.includes('エアロバイク')||n.includes('有酸素')) return 'cardio';
   if(n.includes('ベンチ')||n.includes('チェスト')||n.includes('フライ')||n.includes('ペック')||n.includes('インクライン')) return 'chest';
-  if(n.includes('デッド')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('ラット')||n.includes('シュラッグ')||n.includes('プルオーバー')) return 'back';
+  if(n.includes('デッド')||n.includes('懸垂')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('ラット')||n.includes('シュラッグ')||n.includes('プルオーバー')) return 'back';
   if(n.includes('スクワット')||n.includes('レッグ')||n.includes('ランジ')||n.includes('ヒップ')||n.includes('ハック')) return 'legs';
   if(n.includes('カール')||n.includes('二頭')||n.includes('ハンマー')) return 'biceps';
-  if(n.includes('プレスダウン')||n.includes('エクステンション')||n.includes('三頭')||n.includes('キックバック')) return 'triceps';
+  if(n.includes('プレスダウン')||n.includes('エクステンション')||n.includes('トライセップ')||n.includes('三頭')||n.includes('キックバック')) return 'triceps';
   return 'chest';
+}
+
+/** 保存済みカタログに DEFAULT の新種目を前方優先でマージ（ユーザー追加種目は末尾に残す） */
+function mergeCatalogWithDefaults(catalog){
+  const base = JSON.parse(JSON.stringify(DEFAULT_CATALOG));
+  if(!catalog || typeof catalog !== 'object') return base;
+  const merged = {};
+  PART_ORDER.forEach(id=>{
+    const def = base[id] || { name:id, color:'#888', exercises:[] };
+    const cur = catalog[id] || {};
+    const defEx = def.exercises || [];
+    const curEx = cur.exercises || [];
+    const exercises = [];
+    defEx.forEach(n=>{ if(!exercises.includes(n)) exercises.push(n); });
+    curEx.forEach(n=>{ if(!exercises.includes(n)) exercises.push(n); });
+    merged[id] = {
+      name: cur.name || def.name,
+      color: cur.color || def.color,
+      exercises
+    };
+  });
+  Object.keys(catalog).forEach(id=>{
+    if(!merged[id]) merged[id] = catalog[id];
+  });
+  return merged;
 }
 
 function ensureExerciseInCatalog(partId, name){
@@ -1007,10 +1070,10 @@ const DEFAULT_YOUTUBE_CIRCUITS = [
 
 const DEFAULT_CATALOG = {
   chest:    { name:'胸',   color:'#FF6B6B', exercises:['ベンチプレス','インクラインダンベルプレス','アイソラテラルワイドチェスト','ペックフライ'] },
-  back:     { name:'背中', color:'#4FA8FF', exercises:['ラットプル（マシン）','Tバーロー','ラットプル（パラレルアンダーグリップ）','アシストチンニング'] },
+  back:     { name:'背中', color:'#4FA8FF', exercises:['懸垂','デッドリフト','ラットプル（マシン）','Tバーロー','ラットプル（パラレルアンダーグリップ）'] },
   legs:     { name:'脚',   color:'#35D48A', exercises:['スクワット','レッグプレス','レッグカール','ハックスクワット'] },
-  biceps:   { name:'二頭', color:'#FFB020', exercises:['ケーブルアームカール','ケーブルハンマーカール','ビハインドカール（前腕）'] },
-  triceps:  { name:'三頭', color:'#FF8B6B', exercises:['ケーブルプレスダウン','ケーブルオーバーヘッドエクステンション'] },
+  biceps:   { name:'二頭', color:'#FFB020', exercises:['ケーブルアームカール','ケーブルハンマーカール','ビハインドカール（前腕）','ダンベルカール'] },
+  triceps:  { name:'三頭', color:'#FF8B6B', exercises:['ケーブルプレスダウン','ケーブルオーバーヘッドエクステンション','ダンベルトライセップスエクステンション'] },
   cardio:   { name:'有酸素', color:'#6B9FFF', exercises:['有酸素（トレッドミル）'] }
 };
 
@@ -1584,21 +1647,14 @@ function buildSetsForExercise(name, today){
   });
 }
 
-function countCardioThisWeek(today){
-  const d = parseISODate(today);
+function countCardioThisWeek(targetDate){
+  const d = parseISODate(targetDate);
   const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
   const mon = new Date(d); mon.setDate(d.getDate() - dow);
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
   const monStr = dateStrFromDate(mon);
   const sunStr = dateStrFromDate(sun);
-  return getStrengthHistory().filter(h=>{
-    if(h.date < monStr || h.date > sunStr || h.date >= today) return false;
-    return entryHasPart(h, getMenuRules().cardio.partId) ||
-      (h.exercises || []).some(ex=>{
-        const n = ex.name || '';
-        return n.includes('トレッドミル') || n.includes('ランニング') || n.includes('ウォーキング') || n.includes('エアロバイク');
-      });
-  }).length;
+  return getCardioSessionDates().filter(ds => ds >= monStr && ds <= sunStr && ds < targetDate).length;
 }
 
 function shouldAddCardio(primaryPartId, today){
@@ -2208,7 +2264,7 @@ function getBig3Class(entry){
     if((cat.legs?.exercises||[]).includes(name)) hasLegs=true;
     if((cat.cardio?.exercises||[]).includes(name)) hasCardio=true;
     if(name.includes('ベンチ')||name.includes('チェスト')||name.includes('フライ')||name.includes('ペック')) hasChest=true;
-    if(name.includes('デッドリフト')||name.includes('ロー')||name.includes('プルダウン')||name.includes('チンニング')||name.includes('シュラッグ')) hasBack=true;
+    if(name.includes('デッドリフト')||name.includes('懸垂')||name.includes('ロー')||name.includes('プルダウン')||name.includes('チンニング')||name.includes('シュラッグ')) hasBack=true;
     if(name.includes('スクワット')||name.includes('レッグ')||name.includes('ランジ')||name.includes('ヒップ')) hasLegs=true;
     if(name.includes('トレッドミル')||name.includes('ランニング')||name.includes('ウォーキング')||name.includes('エアロバイク')) hasCardio=true;
   }
@@ -2225,7 +2281,7 @@ function getBig3ClassForDate(ds, entry){
   if(strengthRows.length>0){
     const names=strengthRows.map(d=>d.exercise);
     const isChest=n=>n.includes('ベンチ')||n.includes('チェスト')||n.includes('フライ')||n.includes('ペック')||n.includes('インクライン')||n.includes('スーパーフライ')||n.includes('アイソラテラル');
-    const isBack=n=>n.includes('デッドリフト')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('シュラッグ')||n.includes('プルオーバー');
+    const isBack=n=>n.includes('デッドリフト')||n.includes('懸垂')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('シュラッグ')||n.includes('プルオーバー');
     const isLegs=n=>n.includes('スクワット')||n.includes('レッグ')||n.includes('ランジ')||n.includes('ヒップ')||n.includes('ハック');
     if(names.some(isChest)) return 'big3-bench';
     if(names.some(isBack)) return 'big3-dead';
@@ -2731,7 +2787,7 @@ async function init(){
   const [catalog,circuits,history,draft,workDate,menuRules,menuRulesText]=await Promise.all([
     load(STORAGE.catalog), load(STORAGE.circuits), load(STORAGE.history), load(STORAGE.draft), load(STORAGE.workDate), load(STORAGE.menuRules), load(STORAGE.menuRulesText)
   ]);
-  state.catalog=catalog||DEFAULT_CATALOG;
+  state.catalog = mergeCatalogWithDefaults(catalog);
   state.circuits=circuits?.length ? circuits : DEFAULT_YOUTUBE_CIRCUITS;
   state.history=(history||[]).map(h=>({ ...h, exercises: (h.exercises||[]).map(normalizeExercise) }));
   state.draft=draft ? normalizeDraft(draft) : null;
@@ -2750,7 +2806,8 @@ async function init(){
   }
   const n=new Date();
   state.screen={name:'calendar',year:n.getFullYear(),month:n.getMonth()};
-  if(!catalog || !circuits) await persist();
+  // カタログにデフォルト新種目を反映して保存
+  await persist();
   try{const saved=localStorage.getItem('csv_import_v1');if(saved)ACTIVE_DATA=JSON.parse(saved);}catch(e){}
   render();
 }
