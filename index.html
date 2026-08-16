@@ -861,11 +861,13 @@ function inferPartIdForImport(name){
   if(found) return found;
   const n = name || '';
   if(n.includes('トレッドミル')||n.includes('ランニング')||n.includes('ウォーキング')||n.includes('エアロバイク')||n.includes('有酸素')) return 'cardio';
-  if(n.includes('ベンチ')||n.includes('チェスト')||n.includes('フライ')||n.includes('ペック')||n.includes('インクライン')) return 'chest';
-  if(n.includes('デッド')||n.includes('懸垂')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('ラット')||n.includes('シュラッグ')||n.includes('プルオーバー')) return 'back';
-  if(n.includes('スクワット')||n.includes('レッグ')||n.includes('ランジ')||n.includes('ヒップ')||n.includes('ハック')) return 'legs';
+  if(n.includes('クランチ')||n.includes('シットアップ')||n.includes('プランク')||n.includes('アブ')||n.includes('ツイスト')||n.includes('レッグレイズ')||n.includes('ニーレイズ')||n.includes('体幹')) return 'core';
+  if(n.includes('ショルダー')||n.includes('サイドレイズ')||n.includes('フロントレイズ')||n.includes('リアレイズ')||n.includes('ラテラル')||n.includes('アーノルド')||n.includes('アップライト')) return 'shoulders';
+  if(n.includes('ベンチ')||n.includes('チェスト')||n.includes('フライ')||n.includes('ペック')||n.includes('プッシュアップ')||n.includes('ディップス')) return 'chest';
+  if(n.includes('デッド')||n.includes('懸垂')||n.includes('チンニング')||n.includes('ロウ')||n.includes('ロー')||n.includes('プルダウン')||n.includes('ラット')||n.includes('シュラッグ')||n.includes('プルオーバー')||n.includes('バックエクステンション')) return 'back';
+  if(n.includes('スクワット')||n.includes('レッグ')||n.includes('ランジ')||n.includes('ヒップ')||n.includes('ハック')||n.includes('カーフ')||n.includes('グルート')||n.includes('ステップアップ')||n.includes('レッグプレス')) return 'legs';
   if(n.includes('カール')||n.includes('二頭')||n.includes('ハンマー')) return 'biceps';
-  if(n.includes('プレスダウン')||n.includes('エクステンション')||n.includes('トライセップ')||n.includes('三頭')||n.includes('キックバック')) return 'triceps';
+  if(n.includes('プレスダウン')||n.includes('エクステンション')||n.includes('トライセップ')||n.includes('フレンチ')||n.includes('スカル')||n.includes('キックバック')||n.includes('三頭')) return 'triceps';
   return 'chest';
 }
 
@@ -1069,20 +1071,88 @@ const DEFAULT_YOUTUBE_CIRCUITS = [
 ];
 
 const DEFAULT_CATALOG = {
-  chest:    { name:'胸',   color:'#FF6B6B', exercises:['ベンチプレス','インクラインダンベルプレス','アイソラテラルワイドチェスト','ペックフライ'] },
-  back:     { name:'背中', color:'#4FA8FF', exercises:['懸垂','デッドリフト','ラットプル（マシン）','Tバーロー','ラットプル（パラレルアンダーグリップ）'] },
-  legs:     { name:'脚',   color:'#35D48A', exercises:['スクワット','レッグプレス','レッグカール','ハックスクワット'] },
-  biceps:   { name:'二頭', color:'#FFB020', exercises:['ケーブルアームカール','ケーブルハンマーカール','ビハインドカール（前腕）','ダンベルカール'] },
-  triceps:  { name:'三頭', color:'#FF8B6B', exercises:['ケーブルプレスダウン','ケーブルオーバーヘッドエクステンション','ダンベルトライセップスエクステンション'] },
-  cardio:   { name:'有酸素', color:'#6B9FFF', exercises:['有酸素（トレッドミル）'] }
+  chest: {
+    name: '胸',
+    color: '#FF6B6B',
+    exercises: [
+      'ベンチプレス','インクラインベンチプレス','デクラインベンチプレス',
+      'ダンベルベンチプレス','インクラインダンベルプレス',
+      'ダンベルフライ','インクラインダンベルフライ',
+      'チェストプレス','インクラインチェストプレス',
+      'ペックデック','ケーブルフライ','ディップス','プッシュアップ','ナローベンチプレス'
+    ]
+  },
+  back: {
+    name: '背中',
+    color: '#4FA8FF',
+    exercises: [
+      'デッドリフト','ルーマニアンデッドリフト','スティッフレッグデッドリフト',
+      'ラットプルダウン','ワイドグリップラットプルダウン','ナローグリップラットプルダウン',
+      'チンニング','懸垂','アシストチンニング',
+      'ベントオーバーロウ','ワンハンドダンベルロウ','シーテッドロウ','ケーブルロウ',
+      'Tバーロウ','マシンロウ','ハイロウ','ストレートアームプルダウン',
+      'シュラッグ','ダンベルシュラッグ','バックエクステンション'
+    ]
+  },
+  shoulders: {
+    name: '肩',
+    color: '#E09B4F',
+    exercises: [
+      'バーベルショルダープレス','ダンベルショルダープレス','マシンショルダープレス','アーノルドプレス',
+      'サイドレイズ','ダンベルサイドレイズ','ケーブルサイドレイズ','マシンラテラルレイズ',
+      'フロントレイズ','ダンベルフロントレイズ','リアレイズ','ダンベルリアレイズ',
+      'リバースペックデック','アップライトロウ'
+    ]
+  },
+  legs: {
+    name: '脚',
+    color: '#35D48A',
+    exercises: [
+      'バーベルスクワット','フロントスクワット','スミススクワット','ハックスクワット',
+      'レッグプレス','45度レッグプレス','ブルガリアンスクワット','スプリットスクワット',
+      'ランジ','ウォーキングランジ','ダンベルスクワット','ゴブレットスクワット',
+      'レッグエクステンション','レッグカール','シーテッドレッグカール','ライイングレッグカール',
+      'ルーマニアンデッドリフト','ヒップスラスト','グルートブリッジ',
+      'カーフレイズ','シーテッドカーフレイズ','スタンディングカーフレイズ','ステップアップ'
+    ]
+  },
+  biceps: {
+    name: '上腕二頭筋',
+    color: '#FFB020',
+    exercises: [
+      'バーベルカール','ダンベルカール','インクラインダンベルカール','ハンマーカール',
+      'プリーチャーカール','コンセントレーションカール','ケーブルカール','EZバーカール'
+    ]
+  },
+  triceps: {
+    name: '上腕三頭筋',
+    color: '#FF8B6B',
+    exercises: [
+      'トライセプスプレスダウン','ローププレスダウン','オーバーヘッドトライセプスエクステンション',
+      'ダンベルフレンチプレス','EZバーフレンチプレス','スカルクラッシャー','キックバック','ディップス'
+    ]
+  },
+  core: {
+    name: '腹・体幹',
+    color: '#5EC8C0',
+    exercises: [
+      'クランチ','シットアップ','アブドミナル','レッグレイズ','ハンギングレッグレイズ','ニーレイズ',
+      'リバースクランチ','プランク','サイドプランク','アブローラー','バイシクルクランチ',
+      'ロシアンツイスト','ケーブルクランチ'
+    ]
+  },
+  cardio: {
+    name: '有酸素',
+    color: '#6B9FFF',
+    exercises: ['有酸素（トレッドミル）']
+  }
 };
 
-const PART_ORDER = ['chest','back','legs','biceps','triceps','cardio'];
+const PART_ORDER = ['chest','back','shoulders','legs','biceps','triceps','core','cardio'];
 const DEFAULT_SET_COUNT = 3;
 
 /**
- * DEFAULT_MENU_RULES — 自然言語ルールを解釈した結果の内部表現。
- * 設定画面では DEFAULT_MENU_RULES_TEXT を編集する。
+ * DEFAULT_MENU_RULES — 構造化ルールの初期値。
  */
 const DEFAULT_MENU_RULES = {
   version: 1,
@@ -1091,14 +1161,18 @@ const DEFAULT_MENU_RULES = {
   pairings: {
     chest: ['triceps'],
     back: ['biceps'],
-    legs: []
+    legs: [],
+    shoulders: [],
+    core: []
   },
   minRestDaysByPart: {
     chest: 2,
     back: 2,
+    shoulders: 2,
     legs: 3,
     biceps: 1,
     triceps: 1,
+    core: 1,
     cardio: 0
   },
   exercisesPerPrimary: 3,
@@ -1153,7 +1227,7 @@ function normalizeMenuRules(raw){
   r.cardio.enabled = !!r.cardio.enabled;
   r.cardio.targetPerWeek = Math.max(0, Math.min(7, Number(r.cardio.targetPerWeek) || 0));
   r.cardio.skipWithPrimary = Array.isArray(r.cardio.skipWithPrimary) ? r.cardio.skipWithPrimary : ['legs'];
-  ['chest','back','legs','biceps','triceps','cardio'].forEach(k=>{
+  Object.keys(base.minRestDaysByPart).forEach(k=>{
     r.minRestDaysByPart[k] = Math.max(0, Math.min(14, Number(r.minRestDaysByPart[k]) ?? base.minRestDaysByPart[k]));
   });
   return r;
@@ -2257,20 +2331,26 @@ function getBig3Class(entry){
   if(!isTrainedDay(entry)) return '';
   const names=(entry.exercises||[]).map(e=>e.name||'');
   const cat=state.catalog||DEFAULT_CATALOG;
-  let hasChest=false,hasBack=false,hasLegs=false,hasCardio=false;
+  let hasChest=false,hasBack=false,hasLegs=false,hasCardio=false,hasShoulders=false,hasCore=false;
   for(const name of names){
     if((cat.chest?.exercises||[]).includes(name)) hasChest=true;
     if((cat.back?.exercises||[]).includes(name)) hasBack=true;
     if((cat.legs?.exercises||[]).includes(name)) hasLegs=true;
+    if((cat.shoulders?.exercises||[]).includes(name)) hasShoulders=true;
+    if((cat.core?.exercises||[]).includes(name)) hasCore=true;
     if((cat.cardio?.exercises||[]).includes(name)) hasCardio=true;
-    if(name.includes('ベンチ')||name.includes('チェスト')||name.includes('フライ')||name.includes('ペック')) hasChest=true;
-    if(name.includes('デッドリフト')||name.includes('懸垂')||name.includes('ロー')||name.includes('プルダウン')||name.includes('チンニング')||name.includes('シュラッグ')) hasBack=true;
-    if(name.includes('スクワット')||name.includes('レッグ')||name.includes('ランジ')||name.includes('ヒップ')) hasLegs=true;
-    if(name.includes('トレッドミル')||name.includes('ランニング')||name.includes('ウォーキング')||name.includes('エアロバイク')) hasCardio=true;
+    if(name.includes('ベンチ')||name.includes('チェスト')||name.includes('フライ')||name.includes('ペック')||name.includes('プッシュアップ')) hasChest=true;
+    if(name.includes('デッドリフト')||name.includes('懸垂')||name.includes('ロウ')||name.includes('ロー')||name.includes('プルダウン')||name.includes('チンニング')||name.includes('シュラッグ')) hasBack=true;
+    if(name.includes('ショルダー')||name.includes('サイドレイズ')||name.includes('フロントレイズ')||name.includes('リアレイズ')||name.includes('アーノルド')) hasShoulders=true;
+    if(name.includes('スクワット')||name.includes('レッグ')||name.includes('ランジ')||name.includes('ヒップ')||name.includes('ハック')||name.includes('カーフ')) hasLegs=true;
+    if(name.includes('クランチ')||name.includes('プランク')||name.includes('アブ')) hasCore=true;
+    if(name.includes('トレッドミル')||name.includes('ランニング')||name.includes('ウォーキング')||name.includes('エアロバイク')||name.includes('有酸素')) hasCardio=true;
   }
   if(hasChest) return 'big3-bench';
   if(hasBack) return 'big3-dead';
   if(hasLegs) return 'big3-squat';
+  if(hasShoulders) return 'big3-dead';
+  if(hasCore) return 'trained';
   if(hasCardio) return 'big3-cardio';
   return '';
 }
@@ -2280,12 +2360,14 @@ function getBig3ClassForDate(ds, entry){
   const strengthRows=allRows.filter(d=>d.exercise!==CARDIO);
   if(strengthRows.length>0){
     const names=strengthRows.map(d=>d.exercise);
-    const isChest=n=>n.includes('ベンチ')||n.includes('チェスト')||n.includes('フライ')||n.includes('ペック')||n.includes('インクライン')||n.includes('スーパーフライ')||n.includes('アイソラテラル');
-    const isBack=n=>n.includes('デッドリフト')||n.includes('懸垂')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('シュラッグ')||n.includes('プルオーバー');
-    const isLegs=n=>n.includes('スクワット')||n.includes('レッグ')||n.includes('ランジ')||n.includes('ヒップ')||n.includes('ハック');
+    const isChest=n=>n.includes('ベンチ')||n.includes('チェスト')||n.includes('フライ')||n.includes('ペック')||n.includes('プッシュアップ')||n.includes('スーパーフライ')||n.includes('アイソラテラル');
+    const isBack=n=>n.includes('デッドリフト')||n.includes('懸垂')||n.includes('ロウ')||n.includes('ロー')||n.includes('プルダウン')||n.includes('チンニング')||n.includes('シュラッグ')||n.includes('プルオーバー');
+    const isLegs=n=>n.includes('スクワット')||n.includes('レッグ')||n.includes('ランジ')||n.includes('ヒップ')||n.includes('ハック')||n.includes('カーフ');
+    const isShoulders=n=>n.includes('ショルダー')||n.includes('サイドレイズ')||n.includes('フロントレイズ')||n.includes('リアレイズ')||n.includes('アーノルド');
     if(names.some(isChest)) return 'big3-bench';
     if(names.some(isBack)) return 'big3-dead';
     if(names.some(isLegs)) return 'big3-squat';
+    if(names.some(isShoulders)) return 'big3-dead';
   }
   if(allRows.some(d=>d.exercise===CARDIO)) return 'big3-cardio';
   return getBig3Class(entry);
