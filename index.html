@@ -1176,6 +1176,9 @@ const DEFAULT_MENU_RULES = {
     cardio: 0
   },
   exercisesPerPrimary: 3,
+  exercisesPerPrimaryByPart: {
+    legs: 4
+  },
   exercisesPerAccessory: 2,
   defaultSetCount: 3,
   defaultReps: 8,
@@ -1218,6 +1221,18 @@ function normalizeMenuRules(raw){
   r.primaryRotation = Array.isArray(raw.primaryRotation) && raw.primaryRotation.length
     ? raw.primaryRotation : base.primaryRotation;
   r.exercisesPerPrimary = Math.max(1, Math.min(6, Number(r.exercisesPerPrimary) || base.exercisesPerPrimary));
+  // 古い保存データに exercisesPerPrimaryByPart が無くても壊さない（未設定キーは共通値へフォールバック）
+  const mergedByPart = {
+    ...(base.exercisesPerPrimaryByPart || {}),
+    ...((raw.exercisesPerPrimaryByPart && typeof raw.exercisesPerPrimaryByPart === 'object')
+      ? raw.exercisesPerPrimaryByPart : {})
+  };
+  r.exercisesPerPrimaryByPart = {};
+  Object.keys(mergedByPart).forEach(k=>{
+    const n = Number(mergedByPart[k]);
+    if(!Number.isFinite(n)) return;
+    r.exercisesPerPrimaryByPart[k] = Math.max(1, Math.min(6, n));
+  });
   r.exercisesPerAccessory = Math.max(0, Math.min(4, Number(r.exercisesPerAccessory) || 0));
   r.defaultSetCount = Math.max(1, Math.min(10, Number(r.defaultSetCount) || base.defaultSetCount));
   r.defaultReps = Math.max(1, Math.min(30, Number(r.defaultReps) || base.defaultReps));
@@ -1231,6 +1246,16 @@ function normalizeMenuRules(raw){
     r.minRestDaysByPart[k] = Math.max(0, Math.min(14, Number(r.minRestDaysByPart[k]) ?? base.minRestDaysByPart[k]));
   });
   return r;
+}
+
+function getExercisesPerPrimary(partId, rules = getMenuRules()){
+  const r = normalizeMenuRules(rules);
+  const by = r.exercisesPerPrimaryByPart || {};
+  if(Object.prototype.hasOwnProperty.call(by, partId)){
+    const n = Number(by[partId]);
+    if(Number.isFinite(n)) return Math.max(1, Math.min(6, n));
+  }
+  return r.exercisesPerPrimary;
 }
 
 function extractJsonFromRulesText(text){
@@ -1315,8 +1340,12 @@ function rulesToSummaryText(r){
   const rest = rules.minRestDaysByPart;
   const pairChest = (rules.pairings.chest || []).includes('triceps');
   const pairBack = (rules.pairings.back || []).includes('biceps');
+  const by = rules.exercisesPerPrimaryByPart || {};
+  const primaryLine = (by.legs || by.chest || by.back)
+    ? `主部位 胸${getExercisesPerPrimary('chest', rules)}・背中${getExercisesPerPrimary('back', rules)}・脚${getExercisesPerPrimary('legs', rules)}種目 / 補助${rules.exercisesPerAccessory}種目`
+    : `主部位${rules.exercisesPerPrimary}種目 / 補助${rules.exercisesPerAccessory}種目`;
   return [
-    `主部位${rules.exercisesPerPrimary}種目 / 補助${rules.exercisesPerAccessory}種目`,
+    primaryLine,
     `セット${rules.defaultSetCount} / 回数${rules.defaultReps}`,
     `休養: 胸${rest.chest}日・背中${rest.back}日・脚${rest.legs}日`,
     `補助: ${pairChest?'胸→三頭':''}${pairChest&&pairBack?' / ':''}${pairBack?'背中→二頭':''}${!pairChest&&!pairBack?'なし':''}`,
@@ -1364,6 +1393,11 @@ function readMenuRulesFromForm(){
   const current = getMenuRules();
   const next = cloneMenuRules(current);
   next.exercisesPerPrimary = num('rule-ex-primary', 3);
+  next.exercisesPerPrimaryByPart = {
+    chest: num('rule-ex-primary-chest', next.exercisesPerPrimary),
+    back: num('rule-ex-primary-back', next.exercisesPerPrimary),
+    legs: num('rule-ex-primary-legs', next.exercisesPerPrimary)
+  };
   next.exercisesPerAccessory = num('rule-ex-accessory', 2);
   next.defaultSetCount = num('rule-sets', 3);
   next.defaultReps = num('rule-reps', 8);
@@ -1765,7 +1799,7 @@ function generateMenuForDate(targetDate = todayStr()){
   }
 
   const exercises = [];
-  pickExerciseNames(primaryId, rules.exercisesPerPrimary, targetDate).forEach(name=>{
+  pickExerciseNames(primaryId, getExercisesPerPrimary(primaryId, rules), targetDate).forEach(name=>{
     exercises.push(makeGeneratedExercise(primaryId, name, buildSetsForExercise(name, targetDate)));
   });
 
@@ -2448,12 +2482,21 @@ function renderSettings(){
         <p class="settings-desc">数値・チェックで設定します。自然言語だけの指定は取りこぼしやすいため、構造化入力に戻しています。</p>
         <div class="settings-grid-2">
           <div class="settings-field">
-            <label>主部位の種目数</label>
+            <label>主部位の種目数（共通）</label>
             <input id="rule-ex-primary" type="number" min="1" max="6" step="1" value="${r.exercisesPerPrimary}">
           </div>
           <div class="settings-field">
             <label>補助の種目数</label>
             <input id="rule-ex-accessory" type="number" min="0" max="4" step="1" value="${r.exercisesPerAccessory}">
+          </div>
+        </div>
+        <div class="settings-field">
+          <label>主部位の種目数（部位別）</label>
+          <p class="settings-desc" style="margin:4px 0 8px">未入力時は上の共通値を使います。脚は初期4種目です。</p>
+          <div class="settings-grid-3">
+            <div><label>胸</label><input id="rule-ex-primary-chest" type="number" min="1" max="6" step="1" value="${getExercisesPerPrimary('chest', r)}"></div>
+            <div><label>背中</label><input id="rule-ex-primary-back" type="number" min="1" max="6" step="1" value="${getExercisesPerPrimary('back', r)}"></div>
+            <div><label>脚</label><input id="rule-ex-primary-legs" type="number" min="1" max="6" step="1" value="${getExercisesPerPrimary('legs', r)}"></div>
           </div>
         </div>
         <div class="settings-grid-2">
