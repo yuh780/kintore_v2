@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>筋トレログ｜YU Edition v1.0.0</title>
+<title>筋トレログ｜YU Edition</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="筋トレ">
@@ -460,6 +460,9 @@
 <body>
 <div id="app"></div>
 <script>
+const APP_VERSION = 'v1.1.0';
+document.title = `筋トレログ｜YU Edition ${APP_VERSION}`;
+
 /* DATA-START */
 const DATA = [];
 /* DATA-END */
@@ -1079,7 +1082,10 @@ const DEFAULT_CATALOG = {
       'ダンベルベンチプレス','インクラインダンベルプレス',
       'ダンベルフライ','インクラインダンベルフライ',
       'チェストプレス','インクラインチェストプレス',
-      'ペックデック','ケーブルフライ','ディップス','プッシュアップ','ナローベンチプレス'
+      'ペックデック','ケーブルフライ','ディップス','プッシュアップ','ナローベンチプレス',
+      'ペックフライ','スミスマシンベンチプレス','スミスマシンインクラインプレス',
+      'デクラインダンベルプレス','ケーブルクロスオーバー','ローケーブルフライ',
+      'ハイケーブルフライ','ダンベルスクイーズプレス'
     ]
   },
   back: {
@@ -1091,7 +1097,11 @@ const DEFAULT_CATALOG = {
       'チンニング','懸垂','アシストチンニング',
       'ベントオーバーロウ','ワンハンドダンベルロウ','シーテッドロウ','ケーブルロウ',
       'Tバーロウ','マシンロウ','ハイロウ','ストレートアームプルダウン',
-      'シュラッグ','ダンベルシュラッグ','バックエクステンション'
+      'シュラッグ','ダンベルシュラッグ','バックエクステンション',
+      'パラレルアンダーグリップロー','アンダーグリップラットプルダウン',
+      'パラレルグリップラットプルダウン','ワンハンドラットプルダウン',
+      'インクラインダンベルロウ','リバースグリップベントオーバーロウ',
+      'スミスマシンロウ','ラックプル','ダンベルプルオーバー','バーベルシュラッグ'
     ]
   },
   shoulders: {
@@ -1101,7 +1111,10 @@ const DEFAULT_CATALOG = {
       'バーベルショルダープレス','ダンベルショルダープレス','マシンショルダープレス','アーノルドプレス',
       'サイドレイズ','ダンベルサイドレイズ','ケーブルサイドレイズ','マシンラテラルレイズ',
       'フロントレイズ','ダンベルフロントレイズ','リアレイズ','ダンベルリアレイズ',
-      'リバースペックデック','アップライトロウ'
+      'リバースペックデック','アップライトロウ',
+      'スミスマシンショルダープレス','シーテッドダンベルショルダープレス',
+      'ケーブルフロントレイズ','ケーブルリアレイズ','マシンリアレイズ','フェイスプル',
+      'ワンハンドケーブルサイドレイズ','リバースフライ','ダンベルアップライトロウ'
     ]
   },
   legs: {
@@ -1113,7 +1126,10 @@ const DEFAULT_CATALOG = {
       'ランジ','ウォーキングランジ','ダンベルスクワット','ゴブレットスクワット',
       'レッグエクステンション','レッグカール','シーテッドレッグカール','ライイングレッグカール',
       'ルーマニアンデッドリフト','ヒップスラスト','グルートブリッジ',
-      'カーフレイズ','シーテッドカーフレイズ','スタンディングカーフレイズ','ステップアップ'
+      'カーフレイズ','シーテッドカーフレイズ','スタンディングカーフレイズ','ステップアップ',
+      'スクワット','ワイドスタンススクワット','サイドランジ','リバースランジ',
+      'スタンディングレッグカール','ダンベルルーマニアンデッドリフト','グッドモーニング',
+      'ヒップアブダクション','ヒップアダクション','ダンベルカーフレイズ'
     ]
   },
   biceps: {
@@ -1121,7 +1137,10 @@ const DEFAULT_CATALOG = {
     color: '#FFB020',
     exercises: [
       'バーベルカール','ダンベルカール','インクラインダンベルカール','ハンマーカール',
-      'プリーチャーカール','コンセントレーションカール','ケーブルカール','EZバーカール'
+      'プリーチャーカール','コンセントレーションカール','ケーブルカール','EZバーカール',
+      'スパイダーカール','ダンベルプリーチャーカール','マシンカール',
+      'ワンハンドケーブルカール','リバースカール','ドラッグカール','ベイズンカール',
+      'ケーブルハンマーカール','ワイドグリップバーベルカール'
     ]
   },
   triceps: {
@@ -1129,7 +1148,11 @@ const DEFAULT_CATALOG = {
     color: '#FF8B6B',
     exercises: [
       'トライセプスプレスダウン','ローププレスダウン','オーバーヘッドトライセプスエクステンション',
-      'ダンベルフレンチプレス','EZバーフレンチプレス','スカルクラッシャー','キックバック','ディップス'
+      'ダンベルフレンチプレス','EZバーフレンチプレス','スカルクラッシャー','キックバック','ディップス',
+      'ストレートバープレスダウン','リバースグリッププレスダウン',
+      'ワンハンドケーブルプレスダウン','ダンベルトライセプスエクステンション',
+      'ケーブルオーバーヘッドエクステンション','ライイングトライセプスエクステンション',
+      'ベンチディップス','ダイヤモンドプッシュアップ'
     ]
   },
   core: {
@@ -1138,13 +1161,19 @@ const DEFAULT_CATALOG = {
     exercises: [
       'クランチ','シットアップ','アブドミナル','レッグレイズ','ハンギングレッグレイズ','ニーレイズ',
       'リバースクランチ','プランク','サイドプランク','アブローラー','バイシクルクランチ',
-      'ロシアンツイスト','ケーブルクランチ'
+      'ロシアンツイスト','ケーブルクランチ',
+      'ハンギングニーレイズ','ドラゴンフラッグ','デッドバグ','マウンテンクライマー',
+      'Vシット','ケーブルウッドチョップ','ダンベルサイドベンド','ヒップリフト'
     ]
   },
   cardio: {
     name: '有酸素',
     color: '#6B9FFF',
-    exercises: ['有酸素（トレッドミル）']
+    exercises: [
+      '有酸素（トレッドミル）','有酸素（エアロバイク）','有酸素（ランニング）',
+      '有酸素（ウォーキング）','有酸素（クロストレーナー）','有酸素（ステアクライマー）',
+      '有酸素（ローイングマシン）','有酸素（HIIT）'
+    ]
   }
 };
 
@@ -1530,6 +1559,13 @@ function normalizeExercises(list){
 
 function isSetLogged(set){ return !!(set.weight || set.reps); }
 
+function syncExerciseDoneFromSets(ex, clearWhenIncomplete=false){
+  if(!ex || ex.type==='video') return;
+  const allDone = ex.sets.length > 0 && ex.sets.every(set=>set.done);
+  if(allDone) ex.done = true;
+  else if(clearWhenIncomplete) ex.done = false;
+}
+
 function getWorkoutStatus(draft){
   if(!draft.exercises.length) return 'empty';
   const doneCount = draft.exercises.filter(e=>e.done).length;
@@ -1540,6 +1576,8 @@ function getWorkoutStatus(draft){
 function addExerciseToDraft({ partId, name, type='weight', videoUrl='' }){
   const draft = ensureDraft();
   const id = 'we_'+Date.now();
+  const previous = type === 'video' ? null : lastExerciseRecord(name, draft.date);
+  const previousSets = (previous?.exercise.sets || []).filter(isSetLogged);
   const ex = {
     id,
     partId,
@@ -1547,7 +1585,7 @@ function addExerciseToDraft({ partId, name, type='weight', videoUrl='' }){
     type,
     done: false,
     videoUrl: type === 'video' ? videoUrl : '',
-    sets: type === 'video' ? [] : createDefaultSets()
+    sets: type === 'video' ? [] : (previousSets.length ? previousSets.map(s=>createEmptySet(s.weight,s.reps)) : createDefaultSets())
   };
   draft.exercises.push(ex);
   return id;
@@ -1556,6 +1594,9 @@ function addExerciseToDraft({ partId, name, type='weight', videoUrl='' }){
 function removeExerciseFromDraft(exId){
   const draft = ensureDraft();
   draft.exercises = draft.exercises.filter(e=>e.id!==exId);
+  if(!draft.exercises.length){
+    state.history = state.history.filter(h=>h.date!==draft.date);
+  }
 }
 
 async function resetDayWorkout(){
@@ -2427,7 +2468,7 @@ function renderCalendar(){
   }
   return `
     <header class="topbar">
-      <div class="page-title">筋トレログ｜YU Edition v1.0.0</div>
+      <div class="page-title">筋トレログ｜YU Edition ${APP_VERSION}</div>
       <button class="icon-btn" data-action="settings" aria-label="設定">⚙</button>
     </header>
     <main class="home-main">
@@ -2766,6 +2807,7 @@ function attachHandlers(){
   app.querySelector('[data-action="reset-day"]')?.addEventListener('click',()=>{ resetDayWorkout(); });
 
   app.querySelectorAll('[data-delete-ex]').forEach(el=>{
+    bindCardKeepOpen(el);
     el.onclick=async()=>{
       const exId=el.getAttribute('data-delete-ex');
       const draft=ensureDraft();
@@ -2787,6 +2829,7 @@ function attachHandlers(){
       if(!ex||ex.type==='video'||!ex.sets||ex.sets.length>=10) return;
       const prev=ex.sets[ex.sets.length-1];
       ex.sets.push(createEmptySet(prev?.weight,prev?.reps));
+      syncExerciseDoneFromSets(ex,true);
       keepExerciseExpanded(exId);
       suppressCardCollapse();
       await persist(); render();
@@ -2823,6 +2866,7 @@ function attachHandlers(){
         ex.sets[idx].weight=ex.sets[idx-1].weight;
         ex.sets[idx].reps=ex.sets[idx-1].reps;
         ex.sets[idx].done=ex.sets[idx-1].done;
+        syncExerciseDoneFromSets(ex,!ex.sets[idx].done);
         keepExerciseExpanded(exId);
         suppressCardCollapse();
         await persist(); render();
@@ -2839,6 +2883,7 @@ function attachHandlers(){
       const idx=+el.getAttribute('data-set-idx');
       if(!ex) return;
       ex.sets[idx].done=!ex.sets[idx].done;
+      syncExerciseDoneFromSets(ex,!ex.sets[idx].done);
       keepExerciseExpanded(exId);
       suppressCardCollapse();
       await persist(); render();
@@ -2855,6 +2900,7 @@ function attachHandlers(){
       if(!ex || ex.sets.length <= 1) return;
       if(!confirm(`セット${idx+1}を削除しますか？`)) return;
       ex.sets.splice(idx,1);
+      syncExerciseDoneFromSets(ex);
       keepExerciseExpanded(exId);
       suppressCardCollapse();
       await persist(); render();
